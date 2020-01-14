@@ -31,16 +31,42 @@ def get_total_cost(tile):  # f-score for A* path-finding
 
 
 grid = []
-for x in range(board_width):
-    for y in range(board_height):
-        grid[x, y] = Tile(x, y)
+for x in range(board_width + 1):
+    temp = []
+    for y in range(board_height + 1):
+        temp.append(Tile([x, y]))
+    grid.append(temp)
 
-start_tile = grid[0, 0]
+start_tile = grid[0][0]
 start_tile.g = 0
 
-goal_tile = grid[10, 10]
+goal_tile = grid[5][10]
+goal_tile.state = "goal"
 
 
-def a_star_search(start: Tile, end: Tile):
-    neighbors = []
+def a_star_search(start: Tile, goal: Tile, steps=0, seen=[]):
+    neighbors = [
+        [start.coord[0], start.coord[1] + 1],
+        [start.coord[0] + 1, start.coord[1] + 1],
+        [start.coord[0] + 1, start.coord[1]],
+        [start.coord[0] + 1, start.coord[1] - 1],
+        [start.coord[0], start.coord[1] - 1],
+        [start.coord[0] - 1, start.coord[1] - 1],
+        [start.coord[0] - 1, start.coord[1]],
+        [start.coord[0] - 1, start.coord[1] + 1],
+    ]
 
+    if start.coord == goal.coord:
+        return steps
+
+    if start.coord not in seen:
+        seen.append(start.coord)
+        for neighbor in neighbors:
+            if 0 <= neighbor[0] <= board_width\
+                    and 0 <= neighbor[1] <= board_height:
+                return a_star_search(grid[neighbor[0]][neighbor[1]], goal, steps + 1, seen)
+
+    return False
+
+
+print(a_star_search(start_tile, goal_tile))
