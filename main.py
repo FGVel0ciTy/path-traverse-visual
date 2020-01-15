@@ -3,7 +3,7 @@ import math
 import pygame
 import numpy as np
 import sys
-import time
+from tile_queues import *
 
 colors = {
     "wall": (255, 255, 255),
@@ -14,16 +14,19 @@ colors = {
     "start": (255, 0, 0),
     "solution": (0, 255, 0)
 }
+display_width = 800
+display_height = 800
 sys.setrecursionlimit(1000000000)
 pygame.init()
-screen = pygame.display.set_mode((1000, 1000))
+screen = pygame.display.set_mode((display_width, display_height))
 screen.fill(colors["wall"])
 
 
 class Tile:
-    def __init__(self, x, y, special=None, state="path"):
+    def __init__(self, x, y, weight=0, special=None, state="path"):
         self.x = x
         self.y = y
+        self.weight = weight
         self.state = state
         self.special = special
 
@@ -41,66 +44,6 @@ class Tile:
             pygame.display.update()
 
 
-class AStarQueue(object):
-    def __init__(self):
-        self.queue = []
-
-    def __str__(self):
-        return " ".join([str(i) for i in self.queue])
-
-    def __contains__(self, item):
-        return item in self.queue
-
-    def is_empty(self):
-        return len(self.queue) == []
-
-    def insert(self, item):
-        self.queue.append(item)
-
-    def remove(self):
-        try:
-            min_f_index = 0
-            for index in range(len(self.queue)):
-                if self.queue[index].f < self.queue[min_f_index].f:
-                    min_f_index = index
-            deleted_tile = self.queue[min_f_index]
-            del self.queue[min_f_index]
-            return deleted_tile
-        except IndexError:
-            print()
-            exit()
-
-
-class DijkstraQueue(object):
-    def __init__(self):
-        self.queue = []
-
-    def __str__(self):
-        return " ".join([str(i) for i in self.queue])
-
-    def __contains__(self, item):
-        return item in self.queue
-
-    def is_empty(self):
-        return len(self.queue) == []
-
-    def insert(self, item):
-        self.queue.append(item)
-
-    def remove(self):
-        try:
-            min_g_index = 0
-            for index in range(len(self.queue)):
-                if self.queue[index].g < self.queue[min_g_index].g:
-                    min_g_index = index
-            deleted_tile = self.queue[min_g_index]
-            del self.queue[min_g_index]
-            return deleted_tile
-        except IndexError:
-            print()
-            exit()
-
-
 def get_distance(tile1, tile2):
     return math.sqrt(math.pow(abs(tile1.x - tile2.x), 2) + math.pow(abs(tile1.y - tile2.y), 2))
 
@@ -109,13 +52,17 @@ def get_traveled(tile):  # distance traveled from origin
     return tile.parent.g + get_distance(tile, tile.parent)
 
 
+def get_dijkstra_score(tile):
+    return tile.g + tile.weight
+
+
 def get_total_cost(tile):  # f-score for A* path-finding
     return tile.h + tile.g
 
 
 def within_board(x, y):
-    return 0 <= x < board_width \
-           and 0 <= y < board_height
+    return 0 <= x < grid_width \
+           and 0 <= y < grid_height
 
 
 def get_valid_neighbor_coords(x, y):
@@ -144,15 +91,15 @@ def get_valid_neighbor_coords(x, y):
     return neighbors
 
 
-board_height = 100
-board_width = 100
+grid_height = 100
+grid_width = 100
 
-tile_width = 1000 / board_width
-tile_height = 1000 / board_height
+tile_width = display_width / grid_width
+tile_height = display_height / grid_height
 
-grid = np.empty((board_width, board_height), object)
-for x_ in range(board_width):
-    for y_ in range(board_height):
+grid = np.empty((grid_width, grid_height), object)
+for x_ in range(grid_width):
+    for y_ in range(grid_height):
         grid[x_, y_] = Tile(x_, y_)
 
 goal_tile = grid[90, 5]
@@ -162,14 +109,13 @@ start_tile = grid[25, 20]
 start_tile.g = 0
 start_tile.mark_special("start")
 
-for x_ in range(board_width):
-    for y_ in range(board_height):
+for x_ in range(grid_width):
+    for y_ in range(grid_height):
         grid[x_, y_].h = get_distance(grid[x_, y_], goal_tile)
-
-start_tile.f = get_total_cost(start_tile)
 
 
 def a_star_search(start: Tile):
+    start_tile.f = get_total_cost(start_tile)
     open_queue = AStarQueue()
     open_queue.insert(start)
     closed = []
@@ -210,6 +156,47 @@ def a_star_search(start: Tile):
 
 
 def dijkstra_search(start: Tile):
+    start_tile.d = get_total_cost(start_tile)
+    open_queue = DijkstraQueue()
+    open_queue.insert(start)
+    closed = []
+
+    while not open_queue.is_empty():
+        best_tile = open_queue.remove()
+
+        if best_tile.special == "goal":
+            print(best_tile, "Goal reached")
+            return best_tile
+
+        best_tile.update_state("closed")
+        closed.append(best_tile)
+        neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
+        print(best_tile)
+        for x, y in neighbors:
+            if grid[x, y] in closed:
+                continue
+            if not (grid[x, y] in open_queue):
+                grid[x, y].g = best_tile.g + get_distance(grid[x, y], best_tile)
+                grid[x, y].d = get_dijkstra_score(grid[x, y])
+                open_queue.insert(grid[x, y])
+                grid[x, y].update_state("open")
+
+            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
+            if new_g >= grid[x, y].g:
+                try:
+                    grid[x, y].parent
+                except:
+                    grid[x, y].parent = best_tile
+                continue
+
+            grid[x, y].parent = best_tile
+            grid[x, y].g = new_g
+            grid[x, y].d = get_dijkstra_score(grid[x, y])
+
+    return None
+
+
+def breadth_first_search(start: Tile):
     open_queue = DijkstraQueue()
     open_queue.insert(start)
     closed = []
@@ -279,5 +266,6 @@ while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
+            sys.exit()
 
     pygame.display.flip()
