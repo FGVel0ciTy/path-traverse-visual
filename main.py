@@ -4,12 +4,13 @@ import pygame
 import numpy as np
 import sys
 from tile_queues import *
+import os
 
 colors = {
-    "wall": (255, 255, 255),
+    "wall": (0, 0, 0),
     "closed": (0, 0, 255),
     "open": (102, 153, 255),
-    "path": (0, 0, 0),
+    "path": (255, 255, 255),
     "goal": (255, 153, 0),
     "start": (255, 0, 0),
     "solution": (0, 255, 0)
@@ -17,9 +18,10 @@ colors = {
 display_width = 800
 display_height = 800
 sys.setrecursionlimit(1000000000)
+os.environ['SDL_VIDEO_CENTERED'] = "0"
 pygame.init()
 screen = pygame.display.set_mode((display_width, display_height))
-screen.fill(colors["wall"])
+screen.fill(colors["path"])
 
 
 class Tile:
@@ -65,13 +67,20 @@ def within_board(x, y):
            and 0 <= y < grid_height
 
 
+def walkable(x, y):
+    return not grid[x, y].state == "wall"
+
+
 def get_valid_neighbor_coords(x, y):
     # Order is N, E, S, W, NE, SE, SW, NW
     neighbors = [
         [x, y - 1],
         [x + 1, y],
         [x, y + 1],
-        [x - 1, y],
+        [x - 1, y]
+    ]
+
+    diagonals = [
         [x + 1, y - 1],
         [x + 1, y + 1],
         [x - 1, y + 1],
@@ -81,31 +90,45 @@ def get_valid_neighbor_coords(x, y):
     index = 0
     while index < len(neighbors):
         neighbor = neighbors[index]
-        x = neighbor[0]
-        y = neighbor[1]
-        if not within_board(x, y):
-            neighbors.remove([x, y])
+        xn = neighbor[0]
+        yn = neighbor[1]
+        if not within_board(xn, yn) \
+                or not walkable(xn, yn):
+            neighbors.remove([xn, yn])
         else:
             index = index + 1
 
+    index = 0
+    while index < len(diagonals):
+        diagonal = diagonals[index]
+        xd = diagonal[0]
+        yd = diagonal[1]
+        if not within_board(xd, yd) \
+                or not walkable(xd, yd) \
+                or (grid[xd, y] and grid[x, yd] not in neighbors):
+            diagonals.remove([xd, yd])
+        else:
+            index = index + 1
+
+    neighbors += diagonals
     return neighbors
 
 
 grid_height = 100
 grid_width = 100
 
-tile_width = display_width / grid_width
-tile_height = display_height / grid_height
+tile_width = display_width // grid_width
+tile_height = display_height // grid_height
 
 grid = np.empty((grid_width, grid_height), object)
 for x_ in range(grid_width):
     for y_ in range(grid_height):
         grid[x_, y_] = Tile(x_, y_)
 
-goal_tile = grid[90, 5]
+goal_tile = grid[75, 85]
 goal_tile.mark_special("goal")
 
-start_tile = grid[25, 20]
+start_tile = grid[0, 0]
 start_tile.g = 0
 start_tile.mark_special("start")
 
@@ -253,19 +276,39 @@ def depth_first_search(current_tile: Tile):
     return None
 
 
-solution: Tile = a_star_search(start_tile)
-while True:
-    try:
-        solution.parent.mark_special("solution")
-        solution = solution.parent
-    except:
-        solution.mark_special("start")
-        break
+def on_mouse_press():
+    mx, my = pygame.mouse.get_pos()
+    rb, mb, lb = pygame.mouse.get_pressed()
+    print(mx, my)
+    print(rb, mb, lb)
+    if rb == 1:
+        x = mx // (display_width // grid_width)
+        y = my // (display_height // grid_height)
+        grid[x, y].update_state("wall")
+
+
+def get_solution():
+    solution: Tile = depth_first_search(start_tile)
+    while True:
+        try:
+            solution.parent.mark_special("solution")
+            solution = solution.parent
+        except:
+            solution.mark_special("start")
+            break
+
 
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            get_solution()
+        if True in pygame.mouse.get_pressed():
+            on_mouse_press()
 
     pygame.display.flip()
