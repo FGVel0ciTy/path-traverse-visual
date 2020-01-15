@@ -257,7 +257,7 @@ def breadth_first_search(start: Tile):
     return None
 
 
-def depth_first_search(current_tile: Tile):
+def depth_helper(current_tile: Tile):
     neighbors = get_valid_neighbor_coords(current_tile.x, current_tile.y)
 
     print(current_tile, f"Traveled: {current_tile.g} units")
@@ -271,7 +271,28 @@ def depth_first_search(current_tile: Tile):
         if grid[x, y].state != "closed":
             grid[x, y].parent = current_tile
             grid[x, y].g = get_traveled(grid[x, y])
-            return depth_first_search(grid[x, y])
+            possible_path = depth_first_search(grid[x, y])
+            if possible_path:
+                return possible_path
+
+
+def depth_first_search(start: Tile):
+    neighbors = get_valid_neighbor_coords(start.x, start.y)
+
+    print(start, f"Traveled: {start.g} units")
+
+    if start.special == "goal":
+        return start
+
+    start.update_state("closed")
+
+    for x, y in neighbors:
+        if grid[x, y].state != "closed":
+            grid[x, y].parent = start
+            grid[x, y].g = get_traveled(grid[x, y])
+            possible_path = depth_first_search(grid[x, y])
+            if possible_path:
+                return possible_path
 
     return None
 
@@ -288,7 +309,7 @@ def on_mouse_press():
 
 
 def get_solution():
-    solution: Tile = depth_first_search(start_tile)
+    solution: Tile = a_star_search(start_tile)
     while True:
         try:
             solution.parent.mark_special("solution")
