@@ -17,6 +17,36 @@ class Tile:
         return f"State {self.state} @ {self.x},{self.y}"
 
 
+class AStarQueue(object):
+    def __init__(self):
+        self.queue = []
+
+    def __str__(self):
+        return " ".join([str(i) for i in self.queue])
+
+    def __contains__(self, item):
+        return item in self.queue
+
+    def is_empty(self):
+        return len(self.queue) == []
+
+    def insert(self, item):
+        self.queue.append(item)
+
+    def remove(self):
+        try:
+            min_f_index = 0
+            for index in range(len(self.queue)):
+                if self.queue[index].f > self.queue[min_f_index].f:
+                    min_f_index = index
+            deleted_tile = self.queue[min_f_index]
+            del self.queue[min_f_index]
+            return deleted_tile
+        except IndexError:
+            print()
+            exit()
+
+
 def get_distance(tile1, tile2):
     return math.sqrt(math.pow(abs(tile1.x - tile2.x), 2) + math.pow(abs(tile1.y - tile2.y), 2))
 
@@ -34,6 +64,31 @@ def within_board(x, y):
            and 0 <= y <= board_height
 
 
+def get_valid_neighbor_coords(x, y):
+    neighbors = [
+        [x, y + 1],
+        [x + 1, y + 1],
+        [x + 1, y],
+        [x + 1, y - 1],
+        [x, y - 1],
+        [x - 1, y - 1],
+        [x - 1, y],
+        [x - 1, y + 1]
+    ]
+
+    index = 0
+    while index < len(neighbors):
+        neighbor = neighbors[index]
+        x = neighbor[0]
+        y = neighbor[1]
+        if not within_board(x, y):
+            neighbors.remove([x, y])
+        else:
+            index += 1
+
+    return neighbors
+
+
 grid = np.empty((board_width + 1, board_height + 1), object)
 for x_ in range(board_width + 1):
     for y_ in range(board_height + 1):
@@ -44,6 +99,7 @@ goal_tile.state = "goal"
 
 start_tile = grid[0, 0]
 start_tile.g = 0
+start_tile.state = "seen"
 
 for x_ in range(board_width + 1):
     for y_ in range(board_height + 1):
@@ -52,61 +108,56 @@ for x_ in range(board_width + 1):
 start_tile.f = get_total_cost(start_tile)
 
 
-def a_star_search(current_tile: Tile, goal: Tile):
-    neighbors = [
-        [current_tile.x, current_tile.y + 1],
-        [current_tile.x + 1, current_tile.y + 1],
-        [current_tile.x + 1, current_tile.y],
-        [current_tile.x + 1, current_tile.y - 1],
-        [current_tile.x, current_tile.y - 1],
-        [current_tile.x - 1, current_tile.y - 1],
-        [current_tile.x - 1, current_tile.y],
-        [current_tile.x - 1, current_tile.y + 1]
-    ]
+def a_star_search(start: Tile, goal: Tile):
+    open_queue = AStarQueue()
+    open_queue.insert(start)
+    closed = []
 
-    print(current_tile, f"Heuristic Score: {current_tile.h} units")
+    while not open_queue.is_empty():
+        best_tile = open_queue.remove()
 
-    if current_tile.state == "goal":
-        return current_tile.g
+        if best_tile.state == "goal":
+            print(best_tile, "Goal reached")
+            return True
 
-    if current_tile.state != "seen":
-        current_tile.state = "seen"
+        best_tile.state = "seen"
+        closed.append(best_tile)
+        neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
+        print(best_tile)
         for x, y in neighbors:
-            if within_board(x, y) and \
-                    grid[x, y].state != "seen":
-                grid[x, y].parent = current_tile
-                grid[x, y].g = get_traveled(grid[x, y])
+            if grid[x, y] in closed:
+                continue
+            if not (grid[x, y] in open_queue):
+                grid[x, y].g = best_tile.g + get_distance(grid[x, y], best_tile)
                 grid[x, y].f = get_total_cost(grid[x, y])
-                return a_star_search(grid[x, y], goal)
+                open_queue.insert(grid[x, y])
 
-    return -1
+            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
+            if new_g >= grid[x, y].g:
+                continue
+
+            grid[x, y].parent = best_tile
+            grid[x, y].g = new_g
+            grid[x, y].f = get_total_cost(grid[x, y])
+
+    return False
 
 
 def depth_first_search(current_tile: Tile, goal: Tile):
-    neighbors = [
-        [current_tile.x, current_tile.y + 1],
-        [current_tile.x + 1, current_tile.y + 1],
-        [current_tile.x + 1, current_tile.y],
-        [current_tile.x + 1, current_tile.y - 1],
-        [current_tile.x, current_tile.y - 1],
-        [current_tile.x - 1, current_tile.y - 1],
-        [current_tile.x - 1, current_tile.y],
-        [current_tile.x - 1, current_tile.y + 1]
-    ]
+    neighbors = get_valid_neighbor_coords(current_tile.x, current_tile.y)
 
     print(current_tile, f"Traveled: {current_tile.g} units")
 
     if current_tile.state == "goal":
         return current_tile.g
 
-    if current_tile.state != "seen":
-        current_tile.state = "seen"
-        for x, y in neighbors:
-            if within_board(x, y) and \
-                    grid[x, y].state != "seen":
-                grid[x, y].parent = current_tile
-                grid[x, y].g = get_traveled(grid[x, y])
-                return depth_first_search(grid[x, y], goal)
+    current_tile.state = "seen"
+
+    for x, y in neighbors:
+        if grid[x, y].state != "seen":
+            grid[x, y].parent = current_tile
+            grid[x, y].g = get_traveled(grid[x, y])
+            return depth_first_search(grid[x, y], goal)
 
     return -1
 
