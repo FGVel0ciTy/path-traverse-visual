@@ -6,31 +6,14 @@ import sys
 from tile_queues import *
 import os
 
-colors = {
-    "wall": (0, 0, 0),
-    "closed": (0, 0, 255),
-    "open": (102, 153, 255),
-    "path": (255, 255, 255),
-    "goal": (255, 153, 0),
-    "start": (255, 0, 0),
-    "solution": (0, 255, 0)
-}
-display_width = 800
-display_height = 800
-sys.setrecursionlimit(1000000000)
-os.environ['SDL_VIDEO_CENTERED'] = "0"
-pygame.init()
-screen = pygame.display.set_mode((display_width, display_height))
-screen.fill(colors["path"])
-
 
 class Tile:
-    def __init__(self, x, y, weight=0, special=None, state="path"):
+    def __init__(self, x, y, weight=0, special="normal", state="path"):
         self.x = x
         self.y = y
         self.weight = weight
-        self.state = state
-        self.special = special
+        self.special = self.mark_special(special)
+        self.state = self.update_state(state)
 
     def __repr__(self):
         return f"A {self.special} {self.state} @ {self.x},{self.y}"
@@ -38,12 +21,14 @@ class Tile:
     def mark_special(self, special):
         self.special = special
         pygame.draw.rect(screen, colors[special], (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
+        return special
 
     def update_state(self, state):
-        if not self.special:
+        if self.special == "normal":
             self.state = state
             pygame.draw.rect(screen, colors[state], (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
             pygame.display.update()
+        return state
 
 
 def get_distance(tile1, tile2):
@@ -114,31 +99,13 @@ def get_valid_neighbor_coords(x, y):
     return neighbors
 
 
-grid_height = 100
-grid_width = 100
-
-tile_width = display_width // grid_width
-tile_height = display_height // grid_height
-
-grid = np.empty((grid_width, grid_height), object)
-for x_ in range(grid_width):
-    for y_ in range(grid_height):
-        grid[x_, y_] = Tile(x_, y_)
-
-goal_tile = grid[75, 85]
-goal_tile.mark_special("goal")
-
-start_tile = grid[0, 0]
-start_tile.g = 0
-start_tile.mark_special("start")
-
-for x_ in range(grid_width):
-    for y_ in range(grid_height):
-        grid[x_, y_].h = get_distance(grid[x_, y_], goal_tile)
-
-
 def a_star_search(start: Tile):
-    start_tile.f = get_total_cost(start_tile)
+    for x in range(grid_width):
+        for y in range(grid_height):
+            grid[x, y].h = get_distance(grid[x, y], goal_tile)
+            print(grid[x, y].h)
+
+    start.f = get_total_cost(start)
     open_queue = AStarQueue()
     open_queue.insert(start)
     closed = []
@@ -220,7 +187,7 @@ def dijkstra_search(start: Tile):
 
 
 def breadth_first_search(start: Tile):
-    open_queue = DijkstraQueue()
+    open_queue = BreadthQueue()
     open_queue.insert(start)
     closed = []
 
@@ -319,16 +286,74 @@ def get_solution():
             break
 
 
+def reset_board():
+    global grid
+    screen.fill((102, 0, 204))
+    for x in range(grid_width):
+        for y in range(grid_height):
+            grid[x, y] = Tile(x, y)
+
+    grid[start_x, start_y].mark_special("start")
+    grid[start_x, start_y].g = 0
+
+    grid[goal_x, goal_y].mark_special("goal")
+
+
+# Initial setup
+colors = {
+    "wall": (0, 0, 0),
+    "closed": (0, 0, 255),
+    "open": (102, 153, 255),
+    "path": (255, 255, 255),
+    "normal": (255, 255, 255),
+    "goal": (255, 153, 0),
+    "start": (255, 0, 0),
+    "solution": (0, 255, 0)
+}
+display_width = 800
+display_height = 800
+sys.setrecursionlimit(1000000000)
+os.environ['SDL_VIDEO_CENTERED'] = "0"
+pygame.init()
+screen = pygame.display.set_mode((display_width, display_height))
+screen.fill((102, 0, 204))
+grid_height = 100
+grid_width = 100
+tile_width = display_width // grid_width
+tile_height = display_height // grid_height
+grid = np.empty((grid_width, grid_height), object)
+for x_ in range(grid_width):
+    for y_ in range(grid_height):
+        grid[x_, y_] = Tile(x_, y_)
+start_x = 0
+start_y = 0
+goal_x = 75
+goal_y = 85
+# Initial setup
+
+
+goal_tile = grid[goal_x, goal_y]
+goal_tile.mark_special("goal")
+
+start_tile = grid[start_x, start_y]
+start_tile.g = 0
+start_tile.mark_special("start")
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            print("Quitting")
             pygame.quit()
             sys.exit()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+        if event.type == pygame.KEYDOWN and (event.key == pygame.K_KP_ENTER or event.key == pygame.K_RETURN):
+            print("Getting Solution")
             get_solution()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_F5:
+            print("Refreshing")
+            reset_board()
         if True in pygame.mouse.get_pressed():
             on_mouse_press()
 
