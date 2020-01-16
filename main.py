@@ -232,7 +232,7 @@ def depth_helper(current_tile: Tile):
         if grid[x, y].state != "closed":
             grid[x, y].parent = current_tile
             grid[x, y].g = get_traveled(grid[x, y])
-            possible_path = depth_first_search(grid[x, y])
+            possible_path = depth_helper(grid[x, y])
             if possible_path:
                 return possible_path
 
@@ -251,7 +251,7 @@ def depth_first_search():
         if grid[x, y].state != "closed":
             grid[x, y].parent = start_tile
             grid[x, y].g = get_traveled(grid[x, y])
-            possible_path = depth_first_search(grid[x, y])
+            possible_path = depth_helper(grid[x, y])
             if possible_path:
                 return possible_path
 
@@ -355,7 +355,7 @@ searches = {
 }
 display_width = 800
 display_height = 800
-sys.setrecursionlimit(1000000000)
+sys.setrecursionlimit(1000000)
 os.environ['SDL_VIDEO_CENTERED'] = "0"
 pygame.init()
 screen = pygame.display.set_mode((display_width, display_height))
@@ -403,6 +403,8 @@ while True:
                 change_algorithm("dijkstra's")
             if event.key == pygame.K_b:
                 change_algorithm("bfs")
+            if event.key == pygame.K_EQUALS:
+                change_algorithm("dfs")
         if True in pygame.mouse.get_pressed():
             on_mouse_press()
 
