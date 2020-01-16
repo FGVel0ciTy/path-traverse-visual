@@ -35,9 +35,7 @@ class AStarQueue(PriorityQueue):
             for index in range(len(self.queue)):
                 if self.queue[index].f < self.queue[min_f_index].f:
                     min_f_index = index
-            deleted_tile = self.queue[min_f_index]
-            del self.queue[min_f_index]
-            return deleted_tile
+            return self.queue.pop(min_f_index)
         except IndexError:
             print()
             exit()

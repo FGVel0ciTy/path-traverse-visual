@@ -12,8 +12,8 @@ class Tile:
         self.x = x
         self.y = y
         self.weight = weight
-        self.special = self.mark_special(special)
-        self.state = self.update_state(state)
+        self.special = special
+        self.state = state
 
     def __repr__(self):
         return f"A {self.special} {self.state} @ {self.x},{self.y}"
@@ -32,7 +32,7 @@ class Tile:
 
 
 def get_distance(tile1, tile2):
-    return math.sqrt(math.pow(abs(tile1.x - tile2.x), 2) + math.pow(abs(tile1.y - tile2.y), 2))
+    return math.sqrt(math.pow(tile1.x - tile2.x, 2) + math.pow(tile1.y - tile2.y, 2))
 
 
 def get_traveled(tile):  # distance traveled from origin
@@ -53,7 +53,7 @@ def within_board(x, y):
 
 
 def walkable(x, y):
-    return not grid[x, y].state == "wall"
+    return grid[x, y].state != "wall"
 
 
 def get_valid_neighbor_coords(x, y):
@@ -74,24 +74,20 @@ def get_valid_neighbor_coords(x, y):
 
     index = 0
     while index < len(neighbors):
-        neighbor = neighbors[index]
-        xn = neighbor[0]
-        yn = neighbor[1]
+        xn, yn = neighbors[index]
         if not within_board(xn, yn) \
                 or not walkable(xn, yn):
-            neighbors.remove([xn, yn])
+            del neighbors[index]
         else:
             index = index + 1
 
     index = 0
     while index < len(diagonals):
-        diagonal = diagonals[index]
-        xd = diagonal[0]
-        yd = diagonal[1]
+        xd, yd = diagonals[index]
         if not within_board(xd, yd) \
                 or not walkable(xd, yd) \
-                or (grid[xd, y] and grid[x, yd] not in neighbors):
-            diagonals.remove([xd, yd])
+                or ([xd, y] not in neighbors and [x, yd] not in neighbors):
+            del diagonals[index]
         else:
             index = index + 1
 
@@ -99,15 +95,14 @@ def get_valid_neighbor_coords(x, y):
     return neighbors
 
 
-def a_star_search(start: Tile):
+def a_star_search():
     for x in range(grid_width):
         for y in range(grid_height):
             grid[x, y].h = get_distance(grid[x, y], goal_tile)
-            print(grid[x, y].h)
 
-    start.f = get_total_cost(start)
+    start_tile.f = get_total_cost(start_tile)
     open_queue = AStarQueue()
-    open_queue.insert(start)
+    open_queue.insert(start_tile)
     closed = []
 
     while not open_queue.is_empty():
@@ -120,7 +115,6 @@ def a_star_search(start: Tile):
         best_tile.update_state("closed")
         closed.append(best_tile)
         neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
-        print(best_tile)
         for x, y in neighbors:
             if grid[x, y] in closed:
                 continue
@@ -145,10 +139,10 @@ def a_star_search(start: Tile):
     return None
 
 
-def dijkstra_search(start: Tile):
-    start_tile.d = get_total_cost(start_tile)
+def dijkstra_search():
+    start_tile.d = get_dijkstra_score(start_tile)
     open_queue = DijkstraQueue()
-    open_queue.insert(start)
+    open_queue.insert(start_tile)
     closed = []
 
     while not open_queue.is_empty():
@@ -186,9 +180,9 @@ def dijkstra_search(start: Tile):
     return None
 
 
-def breadth_first_search(start: Tile):
+def breadth_first_search():
     open_queue = BreadthQueue()
-    open_queue.insert(start)
+    open_queue.insert(start_tile)
     closed = []
 
     while not open_queue.is_empty():
@@ -243,19 +237,19 @@ def depth_helper(current_tile: Tile):
                 return possible_path
 
 
-def depth_first_search(start: Tile):
-    neighbors = get_valid_neighbor_coords(start.x, start.y)
+def depth_first_search():
+    neighbors = get_valid_neighbor_coords(start_tile.x, start_tile.y)
 
-    print(start, f"Traveled: {start.g} units")
+    print(start_tile, f"Traveled: {start_tile.g} units")
 
-    if start.special == "goal":
-        return start
+    if start_tile.special == "goal":
+        return start_tile
 
-    start.update_state("closed")
+    start_tile.update_state("closed")
 
     for x, y in neighbors:
         if grid[x, y].state != "closed":
-            grid[x, y].parent = start
+            grid[x, y].parent = start_tile
             grid[x, y].g = get_traveled(grid[x, y])
             possible_path = depth_first_search(grid[x, y])
             if possible_path:
@@ -265,18 +259,42 @@ def depth_first_search(start: Tile):
 
 
 def on_mouse_press():
+    global start_tile
+    global goal_tile
     mx, my = pygame.mouse.get_pos()
+    x = mx // (display_width // grid_width)
+    y = my // (display_height // grid_height)
     rb, mb, lb = pygame.mouse.get_pressed()
+    keys = pygame.key.get_pressed()
     print(mx, my)
     print(rb, mb, lb)
-    if rb == 1:
-        x = mx // (display_width // grid_width)
-        y = my // (display_height // grid_height)
-        grid[x, y].update_state("wall")
+    if rb:
+        if keys[pygame.K_LCTRL]:
+            if not grid[x, y] == goal_tile:
+                start_tile.mark_special("normal")
+                grid[start_tile.x, start_tile.y] = Tile(start_tile.x, start_tile.y)
+                grid[x, y] = Tile(x, y)
+                start_tile = grid[x, y]
+                start_tile.mark_special("start")
+                start_tile.g = 0
+        elif keys[pygame.K_LALT]:
+            if not grid[x, y] == start_tile:
+                goal_tile.mark_special("normal")
+                grid[goal_tile.x, goal_tile.y] = Tile(goal_tile.x, goal_tile.y)
+                grid[x, y] = Tile(x, y)
+                goal_tile = grid[x, y]
+                goal_tile.mark_special("goal")
+        else:
+            if grid[x, y] != goal_tile and grid[x, y] != start_tile:
+                grid[x, y].mark_special("normal")
+                grid[x, y].update_state("wall")
+    elif lb:
+        if grid[x, y].state == "wall":
+            grid[x, y].update_state("path")
 
 
-def get_solution():
-    solution: Tile = a_star_search(start_tile)
+def get_solution(search_type):
+    solution: Tile = searches[search_type]()
     while True:
         try:
             solution.parent.mark_special("solution")
@@ -286,17 +304,36 @@ def get_solution():
             break
 
 
-def reset_board():
+def reset_board(hard):
     global grid
-    screen.fill((102, 0, 204))
+    global start_tile
+    global goal_tile
+
+    screen.fill(colors["path"])
+
     for x in range(grid_width):
         for y in range(grid_height):
-            grid[x, y] = Tile(x, y)
+            if hard:
+                grid[x, y] = Tile(x, y)
+            else:
+                if grid[x, y].state == "wall":
+                    grid[x, y] = Tile(x, y)
+                    grid[x, y].update_state("wall")
+                else:
+                    grid[x, y] = Tile(x, y)
 
-    grid[start_x, start_y].mark_special("start")
-    grid[start_x, start_y].g = 0
+    start_tile = grid[start_tile.x, start_tile.y]
+    start_tile.mark_special("start")
+    start_tile.g = 0
 
-    grid[goal_x, goal_y].mark_special("goal")
+    goal_tile = grid[goal_tile.x, goal_tile.y]
+    goal_tile.mark_special("goal")
+
+
+def change_algorithm(algorithm):
+    global current_search
+    current_search = algorithm
+    pygame.display.set_caption(f"{current_search} algorithm")
 
 
 # Initial setup
@@ -310,32 +347,36 @@ colors = {
     "start": (255, 0, 0),
     "solution": (0, 255, 0)
 }
+searches = {
+    "dijkstra's": dijkstra_search,
+    "a*": a_star_search,
+    "dfs": depth_first_search,
+    "bfs": breadth_first_search
+}
 display_width = 800
 display_height = 800
 sys.setrecursionlimit(1000000000)
 os.environ['SDL_VIDEO_CENTERED'] = "0"
 pygame.init()
 screen = pygame.display.set_mode((display_width, display_height))
-screen.fill((102, 0, 204))
+screen.fill(colors["path"])
+current_search = "a*"
+pygame.display.set_caption(f"{current_search} algorithm")
 grid_height = 100
 grid_width = 100
 tile_width = display_width // grid_width
 tile_height = display_height // grid_height
 grid = np.empty((grid_width, grid_height), object)
-for x_ in range(grid_width):
-    for y_ in range(grid_height):
-        grid[x_, y_] = Tile(x_, y_)
-start_x = 0
-start_y = 0
-goal_x = 75
-goal_y = 85
+for x in range(grid_width):
+    for y in range(grid_height):
+        grid[x, y] = Tile(x, y)
 # Initial setup
 
 
-goal_tile = grid[goal_x, goal_y]
+goal_tile = grid[99, 99]
 goal_tile.mark_special("goal")
 
-start_tile = grid[start_x, start_y]
+start_tile = grid[0, 0]
 start_tile.g = 0
 start_tile.mark_special("start")
 
@@ -344,16 +385,24 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            print("Quitting")
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.KEYDOWN and (event.key == pygame.K_KP_ENTER or event.key == pygame.K_RETURN):
-            print("Getting Solution")
-            get_solution()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_F5:
-            print("Refreshing")
-            reset_board()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                print("Quitting")
+                pygame.quit()
+                sys.exit()
+            if event.key == pygame.K_KP_ENTER or event.key == pygame.K_RETURN:
+                print("Getting Solution")
+                reset_board(False)
+                get_solution(current_search)
+            if event.key == pygame.K_F5:
+                print("Refreshing")
+                reset_board(True)
+            if event.key == pygame.K_a:
+                change_algorithm("a*")
+            if event.key == pygame.K_d:
+                change_algorithm("dijkstra's")
+            if event.key == pygame.K_b:
+                change_algorithm("bfs")
         if True in pygame.mouse.get_pressed():
             on_mouse_press()
 
