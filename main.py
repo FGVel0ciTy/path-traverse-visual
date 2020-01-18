@@ -8,7 +8,7 @@ import os
 
 
 class Tile:
-    def __init__(self, x, y, weight=0, special="normal", state="path"):
+    def __init__(self, x, y, weight=1, special="normal", state="path"):
         self.x = x
         self.y = y
         self.weight = weight
@@ -20,13 +20,16 @@ class Tile:
 
     def mark_special(self, special):
         self.special = special
-        pygame.draw.rect(screen, colors[special], (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
+        pygame.draw.rect(screen, colors[special],
+                         (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
+        pygame.display.update()
         return special
 
     def update_state(self, state):
-        if self.special == "normal":
-            self.state = state
-            pygame.draw.rect(screen, colors[state], (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
+        self.state = state
+        if self.special != "goal" or self.special != "start":
+            pygame.draw.rect(screen, colors[state],
+                             (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
             pygame.display.update()
         return state
 
@@ -40,11 +43,11 @@ def get_traveled(tile):  # distance traveled from origin
 
 
 def get_dijkstra_score(tile):
-    return tile.g + tile.weight
+    return tile.g * tile.weight
 
 
 def get_total_cost(tile):  # f-score for A* path-finding
-    return tile.h + tile.g
+    return tile.h + get_dijkstra_score(tile)
 
 
 def within_board(x, y):
@@ -103,159 +106,152 @@ def a_star_search():
     start_tile.f = get_total_cost(start_tile)
     open_queue = AStarQueue()
     open_queue.insert(start_tile)
-    closed = []
 
     while not open_queue.is_empty():
         best_tile = open_queue.remove()
 
-        if best_tile.special == "goal":
-            print(best_tile, "Goal reached")
-            return best_tile
-
         best_tile.update_state("closed")
-        closed.append(best_tile)
         neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
         for x, y in neighbors:
-            if grid[x, y] in closed:
+            if grid[x, y].state == "closed":
                 continue
-            if not (grid[x, y] in open_queue):
-                grid[x, y].g = best_tile.g + get_distance(grid[x, y], best_tile)
-                grid[x, y].f = get_total_cost(grid[x, y])
+            if grid[x, y] not in open_queue:
+                if grid[x, y].special == "goal":
+                    print(grid[x, y], "Goal reached")
+                    grid[x, y].parent = best_tile
+                    return grid[x, y]
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
 
             new_g = best_tile.g + get_distance(grid[x, y], best_tile)
-            if new_g >= grid[x, y].g:
-                try:
-                    grid[x, y].parent
-                except:
+            try:
+                if new_g < grid[x, y].g:
+                    grid[x, y].g = new_g
                     grid[x, y].parent = best_tile
-                continue
+                    grid[x, y].f = get_total_cost(grid[x, y])
+                    continue
+            except:
+                grid[x, y].g = new_g
+                grid[x, y].parent = best_tile
 
-            grid[x, y].parent = best_tile
-            grid[x, y].g = new_g
             grid[x, y].f = get_total_cost(grid[x, y])
 
     return None
 
 
 def dijkstra_search():
+    for x in range(grid_width):
+        for y in range(grid_height):
+            grid[x, y].h = get_distance(grid[x, y], goal_tile)
+
     start_tile.d = get_dijkstra_score(start_tile)
     open_queue = DijkstraQueue()
     open_queue.insert(start_tile)
-    closed = []
 
     while not open_queue.is_empty():
         best_tile = open_queue.remove()
 
-        if best_tile.special == "goal":
-            print(best_tile, "Goal reached")
-            return best_tile
-
         best_tile.update_state("closed")
-        closed.append(best_tile)
         neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
-        print(best_tile)
         for x, y in neighbors:
-            if grid[x, y] in closed:
+            if grid[x, y].state == "closed":
                 continue
-            if not (grid[x, y] in open_queue):
-                grid[x, y].g = best_tile.g + get_distance(grid[x, y], best_tile)
-                grid[x, y].d = get_dijkstra_score(grid[x, y])
+            if grid[x, y] not in open_queue:
+                if grid[x, y].special == "goal":
+                    print(grid[x, y], "Goal reached")
+                    grid[x, y].parent = best_tile
+                    return grid[x, y]
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
 
             new_g = best_tile.g + get_distance(grid[x, y], best_tile)
-            if new_g >= grid[x, y].g:
-                try:
-                    grid[x, y].parent
-                except:
+            try:
+                if new_g < grid[x, y].g:
+                    grid[x, y].g = new_g
                     grid[x, y].parent = best_tile
-                continue
+                    grid[x, y].d = get_dijkstra_score(grid[x, y])
+                    continue
+            except:
+                grid[x, y].g = new_g
+                grid[x, y].parent = best_tile
 
-            grid[x, y].parent = best_tile
-            grid[x, y].g = new_g
             grid[x, y].d = get_dijkstra_score(grid[x, y])
 
     return None
 
 
-def breadth_first_search():
-    open_queue = BreadthQueue()
+def greedy_first_search():
+    for x in range(grid_width):
+        for y in range(grid_height):
+            grid[x, y].h = get_distance(grid[x, y], goal_tile)
+
+    open_queue = GreedyQueue()
     open_queue.insert(start_tile)
-    closed = []
 
     while not open_queue.is_empty():
         best_tile = open_queue.remove()
 
-        if best_tile.special == "goal":
-            print(best_tile, "Goal reached")
-            return best_tile
-
         best_tile.update_state("closed")
-        closed.append(best_tile)
         neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
-        print(best_tile)
         for x, y in neighbors:
-            if grid[x, y] in closed:
+            if grid[x, y].state == "closed":
                 continue
-            if not (grid[x, y] in open_queue):
-                grid[x, y].g = best_tile.g + get_distance(grid[x, y], best_tile)
+            if grid[x, y] not in open_queue:
+                if grid[x, y].special == "goal":
+                    print(grid[x, y], "Goal reached")
+                    grid[x, y].parent = best_tile
+                    return grid[x, y]
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
-
-            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
-            if new_g >= grid[x, y].g:
-                try:
-                    grid[x, y].parent
-                except:
-                    grid[x, y].parent = best_tile
-                continue
-
-            grid[x, y].parent = best_tile
-            grid[x, y].g = new_g
+                grid[x, y].parent = best_tile
 
     return None
 
 
-def depth_helper(current_tile: Tile):
-    neighbors = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+def breadth_first_search():
+    open_queue = [start_tile]
+    closed = []
 
-    print(current_tile, f"Traveled: {current_tile.g} units")
+    while len(open_queue) != 0:
+        current_tile = open_queue.pop(0)
 
-    if current_tile.special == "goal":
-        return current_tile
+        if current_tile.special == "goal":
+            print(current_tile, "Goal reached")
+            return current_tile
 
-    current_tile.update_state("closed")
+        if current_tile not in closed:
+            current_tile.update_state("closed")
+            closed.append(current_tile)
 
-    for x, y in neighbors:
-        if grid[x, y].state != "closed":
-            grid[x, y].parent = current_tile
-            grid[x, y].g = get_traveled(grid[x, y])
-            possible_path = depth_helper(grid[x, y])
-            if possible_path:
-                return possible_path
+        neighbors = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        for x, y in neighbors:
+            if grid[x, y] not in closed and grid[x, y] not in open_queue:
+                open_queue.append(grid[x, y])
+                grid[x, y].update_state("open")
+                grid[x, y].parent = current_tile
 
 
 def depth_first_search():
-    neighbors = get_valid_neighbor_coords(start_tile.x, start_tile.y)
+    open_queue = [start_tile]
+    closed = []
 
-    print(start_tile, f"Traveled: {start_tile.g} units")
+    while len(open_queue) != 0:
+        current_tile = open_queue.pop(-1)
 
-    if start_tile.special == "goal":
-        return start_tile
+        if current_tile.special == "goal":
+            print(current_tile, "Goal reached")
+            return current_tile
 
-    start_tile.update_state("closed")
+        if current_tile not in closed:
+            current_tile.update_state("closed")
+            closed.append(current_tile)
 
-    for x, y in neighbors:
-        if grid[x, y].state != "closed":
-            grid[x, y].parent = start_tile
-            grid[x, y].g = get_traveled(grid[x, y])
-            possible_path = depth_helper(grid[x, y])
-            if possible_path:
-                return possible_path
-
-    return None
+        neighbors = reversed(get_valid_neighbor_coords(current_tile.x, current_tile.y))
+        for x, y in neighbors:
+            if grid[x, y] not in closed and grid[x, y]:
+                open_queue.append(grid[x, y])
+                grid[x, y].update_state("open")
+                grid[x, y].parent = current_tile
 
 
 def on_mouse_press():
@@ -295,13 +291,15 @@ def on_mouse_press():
 
 def get_solution(search_type):
     solution: Tile = searches[search_type]()
-    while True:
-        try:
-            solution.parent.mark_special("solution")
-            solution = solution.parent
-        except:
-            solution.mark_special("start")
-            break
+    if solution:
+        while True:
+            try:
+                solution.parent.mark_special("solution")
+                solution = solution.parent
+                print("parent", solution)
+            except:
+                solution.mark_special("start")
+                break
 
 
 def reset_board(hard):
@@ -351,7 +349,8 @@ searches = {
     "dijkstra's": dijkstra_search,
     "a*": a_star_search,
     "dfs": depth_first_search,
-    "bfs": breadth_first_search
+    "bfs": breadth_first_search,
+    "greedy": greedy_first_search
 }
 display_width = 800
 display_height = 800
@@ -405,6 +404,8 @@ while True:
                 change_algorithm("bfs")
             if event.key == pygame.K_EQUALS:
                 change_algorithm("dfs")
+            if event.key == pygame.K_g:
+                change_algorithm("greedy")
         if True in pygame.mouse.get_pressed():
             on_mouse_press()
 

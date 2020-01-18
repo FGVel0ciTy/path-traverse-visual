@@ -2,7 +2,7 @@ class PriorityQueue(object):
     def __init__(self):
         self.queue = []
 
-    def __str__(self):
+    def __repr__(self):
         return " ".join([str(i) for i in self.queue])
 
     def __contains__(self, item):
@@ -41,6 +41,19 @@ class AStarQueue(PriorityQueue):
             exit()
 
 
+class GreedyQueue(PriorityQueue):
+    def remove(self):
+        try:
+            min_h_index = 0
+            for index in range(len(self.queue)):
+                if self.queue[index].h < self.queue[min_h_index].h:
+                    min_h_index = index
+            return self.queue.pop(min_h_index)
+        except IndexError:
+            print()
+            exit()
+
+
 class DijkstraQueue(PriorityQueue):
     def remove(self):
         try:
@@ -50,21 +63,6 @@ class DijkstraQueue(PriorityQueue):
                     min_d_index = index
             deleted_tile = self.queue[min_d_index]
             del self.queue[min_d_index]
-            return deleted_tile
-        except IndexError:
-            print()
-            exit()
-
-
-class BreadthQueue(PriorityQueue):
-    def remove(self):
-        try:
-            min_g_index = 0
-            for index in range(len(self.queue)):
-                if self.queue[index].g < self.queue[min_g_index].g:
-                    min_g_index = index
-            deleted_tile = self.queue[min_g_index]
-            del self.queue[min_g_index]
             return deleted_tile
         except IndexError:
             print()
