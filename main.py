@@ -8,9 +8,13 @@ import os
 
 
 class Tile:
-    def __init__(self, x, y, weight=1, special="normal", state="path"):
-        self.x = x
-        self.y = y
+    def __init__(self, coord1, coord2=0, weight=1, special="normal", state="path"):
+        if isinstance(x, int):
+            self.x = coord1
+            self.y = coord2
+        else:
+            self.x, self.y = coord1
+        self.coord = (self.x, self.y)
         self.weight = weight
         self.special = special
         self.state = state
@@ -145,10 +149,6 @@ def a_star_search():
 
 
 def dijkstra_search():
-    for x in range(grid_width):
-        for y in range(grid_height):
-            grid[x, y].h = get_distance(grid[x, y], goal_tile)
-
     start_tile.d = get_dijkstra_score(start_tile)
     open_queue = DijkstraQueue()
     open_queue.insert(start_tile)
@@ -216,22 +216,20 @@ def greedy_first_search():
 
 def breadth_first_search():
     open_queue = [start_tile]
-    closed = []
 
     while len(open_queue) != 0:
         current_tile = open_queue.pop(0)
 
-        if current_tile.special == "goal":
-            print(current_tile, "Goal reached")
-            return current_tile
-
-        if current_tile not in closed:
+        if current_tile.state != "closed":
             current_tile.update_state("closed")
-            closed.append(current_tile)
 
         neighbors = get_valid_neighbor_coords(current_tile.x, current_tile.y)
         for x, y in neighbors:
-            if grid[x, y] not in closed and grid[x, y] not in open_queue:
+            if grid[x, y] not in open_queue and grid[x, y].state != "closed":
+                if grid[x, y].special == "goal":
+                    grid[x, y].parent = current_tile
+                    print(grid[x, y], "Goal reached")
+                    return grid[x, y]
                 open_queue.append(grid[x, y])
                 grid[x, y].update_state("open")
                 grid[x, y].parent = current_tile
@@ -239,22 +237,20 @@ def breadth_first_search():
 
 def depth_first_search():
     open_queue = [start_tile]
-    closed = []
 
     while len(open_queue) != 0:
         current_tile = open_queue.pop(-1)
 
-        if current_tile.special == "goal":
-            print(current_tile, "Goal reached")
-            return current_tile
-
-        if current_tile not in closed:
+        if current_tile.state != "closed":
             current_tile.update_state("closed")
-            closed.append(current_tile)
 
         neighbors = reversed(get_valid_neighbor_coords(current_tile.x, current_tile.y))
         for x, y in neighbors:
-            if grid[x, y] not in closed and grid[x, y]:
+            if grid[x, y] not in open_queue and grid[x, y].state != "closed":
+                if grid[x, y].special == "goal":
+                    grid[x, y].parent = current_tile
+                    print(grid[x, y], "Goal reached")
+                    return grid[x, y]
                 open_queue.append(grid[x, y])
                 grid[x, y].update_state("open")
                 grid[x, y].parent = current_tile
@@ -274,7 +270,7 @@ def on_mouse_press():
         if keys[pygame.K_LCTRL]:
             if not grid[x, y] == goal_tile:
                 start_tile.mark_special("normal")
-                grid[start_tile.x, start_tile.y] = Tile(start_tile.x, start_tile.y)
+                grid[start_tile.coord] = Tile(start_tile.coord)
                 grid[x, y] = Tile(x, y)
                 start_tile = grid[x, y]
                 start_tile.mark_special("start")
@@ -282,7 +278,7 @@ def on_mouse_press():
         elif keys[pygame.K_LALT]:
             if not grid[x, y] == start_tile:
                 goal_tile.mark_special("normal")
-                grid[goal_tile.x, goal_tile.y] = Tile(goal_tile.x, goal_tile.y)
+                grid[goal_tile.coord] = Tile(goal_tile.coord)
                 grid[x, y] = Tile(x, y)
                 goal_tile = grid[x, y]
                 goal_tile.mark_special("goal")
@@ -325,11 +321,11 @@ def reset_board(hard):
                 else:
                     grid[x, y] = Tile(x, y)
 
-    start_tile = grid[start_tile.x, start_tile.y]
+    start_tile = grid[start_tile.coord]
     start_tile.mark_special("start")
     start_tile.g = 0
 
-    goal_tile = grid[goal_tile.x, goal_tile.y]
+    goal_tile = grid[goal_tile.coord]
     goal_tile.mark_special("goal")
 
 
