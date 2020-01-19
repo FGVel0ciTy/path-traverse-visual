@@ -5,6 +5,7 @@ import numpy as np
 import sys
 from tile_queues import *
 import os
+import random
 
 
 class Tile:
@@ -22,11 +23,10 @@ class Tile:
         return f"A {self.state} {self.state} @ {self.x},{self.y}"
 
     def update_state(self, state):
-        if self.state != "goal" and self.state != "start":
-            self.state = state
-            pygame.draw.rect(screen, colors[state],
-                             (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
-            pygame.display.update()
+        self.state = state
+        pygame.draw.rect(screen, colors[state],
+                         (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
+        pygame.display.update()
         return self.state
 
 
@@ -62,17 +62,17 @@ def walkable(x, y):  # checks if its a wall
 def get_valid_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals
     # Order is N, E, S, W, NE, SE, SW, NW
     neighbors = [
-        [x, y - 1],
-        [x + 1, y],
-        [x, y + 1],
-        [x - 1, y]
+        (x, y - 1),
+        (x + 1, y),
+        (x, y + 1),
+        (x - 1, y)
     ]
 
     diagonals = [
-        [x + 1, y - 1],
-        [x + 1, y + 1],
-        [x - 1, y + 1],
-        [x - 1, y - 1]
+        (x + 1, y - 1),
+        (x + 1, y + 1),
+        (x - 1, y + 1),
+        (x - 1, y - 1)
     ]
 
     index = 0
@@ -89,13 +89,52 @@ def get_valid_neighbor_coords(x, y, corners=True):  # gets all the neighboring c
         xd, yd = diagonals[index]
         if not within_board(xd, yd) \
                 or not walkable(xd, yd) \
-                or ([xd, y] not in neighbors and [x, yd] not in neighbors):
+                or ((xd, y) not in neighbors and (x, yd) not in neighbors):
             del diagonals[index]
         else:
             index = index + 1
 
     if not corners:
         return neighbors
+
+    neighbors += diagonals
+    return neighbors
+
+
+def get_all_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals
+    # Order is N, E, S, W, NE, SE, SW, NW
+    neighbors = [
+        (x, y - 1),
+        (x + 1, y),
+        (x, y + 1),
+        (x - 1, y)
+    ]
+
+    index = 0
+    while index < len(neighbors):
+        xn, yn = neighbors[index]
+        if not within_board(xn, yn):
+            del neighbors[index]
+        else:
+            index = index + 1
+
+    if not corners:
+        return neighbors
+
+    diagonals = [
+        (x + 1, y - 1),
+        (x + 1, y + 1),
+        (x - 1, y + 1),
+        (x - 1, y - 1)
+    ]
+
+    index = 0
+    while index < len(diagonals):
+        xd, yd = diagonals[index]
+        if not within_board(xd, yd):
+            del diagonals[index]
+        else:
+            index = index + 1
 
     neighbors += diagonals
     return neighbors
@@ -249,8 +288,31 @@ def depth_first_search():
                 grid[x, y].parent = current_tile
 
 
-def recursive_backtrack():
-    reset_board()
+# def recursive_backtrack():
+#     global start_tile
+#     global goal_tile
+#     closed = [[start_tile.x, start_tile.y]]
+#     for x in range(grid_width):
+#         for y in range(grid_height):
+#             grid[x, y].state = "wall"
+#     screen.fill(colors["wall"])
+#     start_tile.update_state("start")
+#     goal_tile.update_state("goal")
+#
+#     recursive_backtrack_helper(start_tile, closed)
+#
+#
+# def recursive_backtrack_helper(current_tile, closed):
+#     neighbors = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
+#     neighbors = [coord for coord in neighbors if coord not in closed]
+#     if neighbors:
+#         next_tile_coord = neighbors.pop(random.randint(0, len(neighbors) - 1))
+#         next_tile = grid[next_tile_coord]
+#         next_tile.update_state("path")
+#         closed += neighbors
+#         recursive_backtrack_helper(next_tile, closed)
+#     else:
+#         print("Finished Maze")
 
 
 def on_mouse_press():
@@ -350,9 +412,9 @@ searches = {
     "bfs": breadth_first_search,
     "greedy": greedy_first_search
 }
-mazes = {
-    "recursive": recursive_backtrack
-}
+# mazes = {
+#     "recursive": recursive_backtrack
+# }
 
 display_width = 800
 display_height = 800
@@ -399,6 +461,8 @@ while True:
             if event.key == pygame.K_F5:
                 print("Refreshing")
                 reset_board(True)
+            # if event.key == pygame.K_m:
+            #     mazes["recursive"]()
             if event.key == pygame.K_a:
                 change_algorithm("a*")
             if event.key == pygame.K_d:
