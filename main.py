@@ -27,39 +27,43 @@ class Tile:
 
     def update_state(self, state):
         self.state = state
-        if self.special != "goal" or self.special != "start":
+        if self.special != "goal" and self.special != "start":
             pygame.draw.rect(screen, colors[state],
                              (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
             pygame.display.update()
         return state
 
 
-def get_distance(tile1, tile2):
+def get_distance(tile1, tile2):  # Euclidean distance between two points
     return math.sqrt(math.pow(tile1.x - tile2.x, 2) + math.pow(tile1.y - tile2.y, 2))
+
+
+def get_distance_manhattan(tile1, tile2):  # Manhattan distance between two points
+    return math.pow(tile1.x - tile2.x, 2) + math.pow(tile1.y - tile2.y, 2)
 
 
 def get_traveled(tile):  # distance traveled from origin
     return tile.parent.g + get_distance(tile, tile.parent)
 
 
-def get_dijkstra_score(tile):
+def get_dijkstra_score(tile):  # retrieve the tile's cost
     return tile.g * tile.weight
 
 
-def get_total_cost(tile):  # f-score for A* path-finding
+def get_f_score(tile):  # f-score for A* path-finding
     return tile.h + get_dijkstra_score(tile)
 
 
-def within_board(x, y):
+def within_board(x, y):  # checks if coords are in board
     return 0 <= x < grid_width \
            and 0 <= y < grid_height
 
 
-def walkable(x, y):
+def walkable(x, y):  # checks if its a wall
     return grid[x, y].state != "wall"
 
 
-def get_valid_neighbor_coords(x, y):
+def get_valid_neighbor_coords(x, y):  # gets all the neighboring coordinates including diagonals
     # Order is N, E, S, W, NE, SE, SW, NW
     neighbors = [
         [x, y - 1],
@@ -103,7 +107,7 @@ def a_star_search():
         for y in range(grid_height):
             grid[x, y].h = get_distance(grid[x, y], goal_tile)
 
-    start_tile.f = get_total_cost(start_tile)
+    start_tile.f = get_f_score(start_tile)
     open_queue = AStarQueue()
     open_queue.insert(start_tile)
 
@@ -115,26 +119,27 @@ def a_star_search():
         for x, y in neighbors:
             if grid[x, y].state == "closed":
                 continue
+            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
             if grid[x, y] not in open_queue:
                 if grid[x, y].special == "goal":
-                    print(grid[x, y], "Goal reached")
+                    grid[x, y].g = new_g
                     grid[x, y].parent = best_tile
+                    print(grid[x, y], f"Goal reached after {grid[x, y].g} units traveled")
                     return grid[x, y]
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
 
-            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
             try:
                 if new_g < grid[x, y].g:
                     grid[x, y].g = new_g
                     grid[x, y].parent = best_tile
-                    grid[x, y].f = get_total_cost(grid[x, y])
+                    grid[x, y].f = get_f_score(grid[x, y])
                     continue
             except:
                 grid[x, y].g = new_g
                 grid[x, y].parent = best_tile
 
-            grid[x, y].f = get_total_cost(grid[x, y])
+            grid[x, y].f = get_f_score(grid[x, y])
 
     return None
 
@@ -156,15 +161,16 @@ def dijkstra_search():
         for x, y in neighbors:
             if grid[x, y].state == "closed":
                 continue
+            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
             if grid[x, y] not in open_queue:
                 if grid[x, y].special == "goal":
-                    print(grid[x, y], "Goal reached")
+                    grid[x, y].g = new_g
                     grid[x, y].parent = best_tile
+                    print(grid[x, y], f"Goal reached after {grid[x, y].g} units traveled")
                     return grid[x, y]
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
 
-            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
             try:
                 if new_g < grid[x, y].g:
                     grid[x, y].g = new_g
@@ -296,7 +302,6 @@ def get_solution(search_type):
             try:
                 solution.parent.mark_special("solution")
                 solution = solution.parent
-                print("parent", solution)
             except:
                 solution.mark_special("start")
                 break
