@@ -50,94 +50,78 @@ def get_f_score(tile):  # f-score for A* path-finding
     return tile.h + get_dijkstra_score(tile)
 
 
-def within_board(x, y):  # checks if coords are in board
+def within_board(coord1, coord2=0):  # checks if coords are in board
+    if isinstance(coord1, int):
+        x = coord1
+        y = coord2
+    else:
+        x, y = coord1
     return 0 <= x < grid_width \
            and 0 <= y < grid_height
 
 
-def walkable(x, y):  # checks if its a wall
+def walkable(coord1, coord2=0):  # checks if its a wall
+    if isinstance(coord1, int):
+        x = coord1
+        y = coord2
+    else:
+        x, y = coord1
     return grid[x, y].state != "wall"
 
 
-def get_valid_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals
+def get_valid_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals_coords
     # Order is N, E, S, W, NE, SE, SW, NW
-    neighbors = [
+    neighbor_coords = [
         (x, y - 1),
         (x + 1, y),
         (x, y + 1),
         (x - 1, y)
     ]
 
-    diagonals = [
+    neighbor_coords = [neighbor for neighbor in neighbor_coords if within_board(neighbor) and walkable(neighbor)]
+
+    if not corners:
+        return neighbor_coords
+
+    diagonals_coords = [
         (x + 1, y - 1),
         (x + 1, y + 1),
         (x - 1, y + 1),
         (x - 1, y - 1)
     ]
 
-    index = 0
-    while index < len(neighbors):
-        xn, yn = neighbors[index]
-        if not within_board(xn, yn) \
-                or not walkable(xn, yn):
-            del neighbors[index]
-        else:
-            index = index + 1
+    diagonals_coords = [diagonal for diagonal in diagonals_coords if within_board(diagonal) and walkable(diagonal)
+                        and ((diagonal[0], y) in neighbor_coords or (x, diagonal[1]) in neighbor_coords)]
 
-    index = 0
-    while index < len(diagonals):
-        xd, yd = diagonals[index]
-        if not within_board(xd, yd) \
-                or not walkable(xd, yd) \
-                or ((xd, y) not in neighbors and (x, yd) not in neighbors):
-            del diagonals[index]
-        else:
-            index = index + 1
-
-    if not corners:
-        return neighbors
-
-    neighbors += diagonals
-    return neighbors
+    neighbor_coords += diagonals_coords
+    return neighbor_coords
 
 
-def get_all_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals
+def get_all_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals_coords
     # Order is N, E, S, W, NE, SE, SW, NW
-    neighbors = [
+    neighbor_coords = [
         (x, y - 1),
         (x + 1, y),
         (x, y + 1),
         (x - 1, y)
     ]
 
-    index = 0
-    while index < len(neighbors):
-        xn, yn = neighbors[index]
-        if not within_board(xn, yn):
-            del neighbors[index]
-        else:
-            index = index + 1
+    neighbor_coords = [neighbor for neighbor in neighbor_coords if within_board(neighbor)]
 
     if not corners:
-        return neighbors
+        return neighbor_coords
 
-    diagonals = [
+    diagonals_coords = [
         (x + 1, y - 1),
         (x + 1, y + 1),
         (x - 1, y + 1),
         (x - 1, y - 1)
     ]
 
-    index = 0
-    while index < len(diagonals):
-        xd, yd = diagonals[index]
-        if not within_board(xd, yd):
-            del diagonals[index]
-        else:
-            index = index + 1
+    diagonals_coords = [diagonal for diagonal in diagonals_coords if within_board(diagonal)]
 
-    neighbors += diagonals
-    return neighbors
+    neighbor_coords += diagonals_coords
+    return neighbor_coords
 
 
 def a_star_search():
@@ -150,34 +134,34 @@ def a_star_search():
     open_queue.insert(start_tile)
 
     while not open_queue.is_empty():
-        best_tile = open_queue.remove()
+        current_tile = open_queue.remove()
 
-        best_tile.update_state("closed")
-        neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
-        for x, y in neighbors:
-            if grid[x, y].state == "closed":
+        if current_tile.state != "start":
+            current_tile.update_state("closed")
+
+        neighbor_coords = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        for x, y in neighbor_coords:
+            if grid[x, y].state == "closed" or grid[x, y].state == "start":
                 continue
-            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
-            if grid[x, y] not in open_queue:
-                if grid[x, y].state == "goal":
-                    grid[x, y].g = new_g
-                    grid[x, y].parent = best_tile
-                    print(grid[x, y], f"Goal reached after {grid[x, y].g} units traveled")
-                    return grid[x, y]
-                open_queue.insert(grid[x, y])
-                grid[x, y].update_state("open")
+
+            new_g = current_tile.g + get_distance(grid[x, y], current_tile)
 
             try:
                 if new_g < grid[x, y].g:
                     grid[x, y].g = new_g
-                    grid[x, y].parent = best_tile
-                    grid[x, y].f = get_f_score(grid[x, y])
-                    continue
+                    grid[x, y].parent = current_tile
             except:
                 grid[x, y].g = new_g
-                grid[x, y].parent = best_tile
+                grid[x, y].parent = current_tile
 
             grid[x, y].f = get_f_score(grid[x, y])
+
+            if grid[x, y] not in open_queue:
+                if grid[x, y].state == "goal":
+                    print(grid[x, y], f"Goal reached after {grid[x, y].g} units traveled")
+                    return grid[x, y]
+                open_queue.insert(grid[x, y])
+                grid[x, y].update_state("open")
 
     return None
 
@@ -188,34 +172,34 @@ def dijkstra_search():
     open_queue.insert(start_tile)
 
     while not open_queue.is_empty():
-        best_tile = open_queue.remove()
+        current_tile = open_queue.remove()
 
-        best_tile.update_state("closed")
-        neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
-        for x, y in neighbors:
-            if grid[x, y].state == "closed":
+        if current_tile.state != "start":
+            current_tile.update_state("closed")
+
+        neighbor_coords = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        for x, y in neighbor_coords:
+            if grid[x, y].state == "closed" or grid[x, y].state == "start":
                 continue
-            new_g = best_tile.g + get_distance(grid[x, y], best_tile)
-            if grid[x, y] not in open_queue:
-                if grid[x, y].state == "goal":
-                    grid[x, y].g = new_g
-                    grid[x, y].parent = best_tile
-                    print(grid[x, y], f"Goal reached after {grid[x, y].g} units traveled")
-                    return grid[x, y]
-                open_queue.insert(grid[x, y])
-                grid[x, y].update_state("open")
+
+            new_g = current_tile.g + get_distance(grid[x, y], current_tile)
 
             try:
                 if new_g < grid[x, y].g:
                     grid[x, y].g = new_g
-                    grid[x, y].parent = best_tile
-                    grid[x, y].d = get_dijkstra_score(grid[x, y])
-                    continue
+                    grid[x, y].parent = current_tile
             except:
                 grid[x, y].g = new_g
-                grid[x, y].parent = best_tile
+                grid[x, y].parent = current_tile
 
             grid[x, y].d = get_dijkstra_score(grid[x, y])
+
+            if grid[x, y] not in open_queue:
+                if grid[x, y].state == "goal":
+                    print(grid[x, y], f"Goal reached after {grid[x, y].g} units traveled")
+                    return grid[x, y]
+                open_queue.insert(grid[x, y])
+                grid[x, y].update_state("open")
 
     return None
 
@@ -229,19 +213,21 @@ def greedy_first_search():
     open_queue.insert(start_tile)
 
     while not open_queue.is_empty():
-        best_tile = open_queue.remove()
+        current_tile = open_queue.remove()
 
-        best_tile.update_state("closed")
-        neighbors = get_valid_neighbor_coords(best_tile.x, best_tile.y)
-        for x, y in neighbors:
-            if grid[x, y] not in open_queue and grid[x, y].state != "closed":
+        if current_tile.state != "start":
+            current_tile.update_state("closed")
+
+        neighbor_coords = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        for x, y in neighbor_coords:
+            if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
                 if grid[x, y].state == "goal":
                     print(grid[x, y], "Goal reached")
-                    grid[x, y].parent = best_tile
+                    grid[x, y].parent = current_tile
                     return grid[x, y]
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
-                grid[x, y].parent = best_tile
+                grid[x, y].parent = current_tile
 
     return None
 
@@ -252,12 +238,12 @@ def breadth_first_search():
     while len(open_queue) != 0:
         current_tile = open_queue.pop(0)
 
-        if current_tile.state != "closed":
+        if current_tile.state != "start":
             current_tile.update_state("closed")
 
-        neighbors = get_valid_neighbor_coords(current_tile.x, current_tile.y)
-        for x, y in neighbors:
-            if grid[x, y] not in open_queue and grid[x, y].state != "closed":
+        neighbor_coords = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        for x, y in neighbor_coords:
+            if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
                 if grid[x, y].state == "goal":
                     grid[x, y].parent = current_tile
                     print(grid[x, y], "Goal reached")
@@ -273,12 +259,12 @@ def depth_first_search():
     while len(open_queue) != 0:
         current_tile = open_queue.pop()
 
-        if current_tile.state != "closed":
+        if current_tile.state != "start":
             current_tile.update_state("closed")
 
-        neighbors = reversed(get_valid_neighbor_coords(current_tile.x, current_tile.y, False))
-        for x, y in neighbors:
-            if grid[x, y] not in open_queue and grid[x, y].state != "closed":
+        neighbor_coords = reversed(get_valid_neighbor_coords(current_tile.x, current_tile.y, False))
+        for x, y in neighbor_coords:
+            if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
                 if grid[x, y].state == "goal":
                     grid[x, y].parent = current_tile
                     print(grid[x, y], "Goal reached")
@@ -303,13 +289,13 @@ def depth_first_search():
 #
 #
 # def recursive_backtrack_helper(current_tile, closed):
-#     neighbors = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
-#     neighbors = [coord for coord in neighbors if coord not in closed]
-#     if neighbors:
-#         next_tile_coord = neighbors.pop(random.randint(0, len(neighbors) - 1))
+#     neighbor_coords = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
+#     neighbor_coords = [coord for coord in neighbor_coords if coord not in closed]
+#     if neighbor_coords:
+#         next_tile_coord = neighbor_coords.pop(random.randint(0, len(neighbor_coords) - 1))
 #         next_tile = grid[next_tile_coord]
 #         next_tile.update_state("path")
-#         closed += neighbors
+#         closed += neighbor_coords
 #         recursive_backtrack_helper(next_tile, closed)
 #     else:
 #         print("Finished Maze")
@@ -358,6 +344,7 @@ def get_solution(search_type):
                 solution.parent.update_state("solution")
                 solution = solution.parent
             except:
+                solution.update_state("start")
                 print("Solution Found")
                 break
 
