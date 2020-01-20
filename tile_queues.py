@@ -1,4 +1,4 @@
-class PriorityQueue(object):
+class PriorityQueue(object):  # Prioritizes Lowest Value Objects
     def __init__(self):
         self.queue = []
 
@@ -28,7 +28,7 @@ class PriorityQueue(object):
             exit()
 
 
-class AStarQueue(PriorityQueue):
+class AStarQueue(PriorityQueue):  # Prioritizes Lowest f scores
     def remove(self):
         try:
             min_f_index = 0
@@ -41,7 +41,7 @@ class AStarQueue(PriorityQueue):
             exit()
 
 
-class GreedyQueue(PriorityQueue):
+class GreedyQueue(PriorityQueue):  # Prioritizes Lowest Heuristic Values
     def remove(self):
         try:
             min_h_index = 0
@@ -54,7 +54,7 @@ class GreedyQueue(PriorityQueue):
             exit()
 
 
-class DijkstraQueue(PriorityQueue):
+class DijkstraQueue(PriorityQueue):  # Prioritizes Lowest g values
     def remove(self):
         try:
             min_d_index = 0

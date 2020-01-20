@@ -10,7 +10,8 @@ import random
 
 class Tile:
     def __init__(self, coord1, coord2=0, weight=1, state="path"):
-        if isinstance(x, int):
+        # This piece throughout the file is to allow tuples/lists to be used alongside x, y notation
+        if isinstance(coord1, int):
             self.x = coord1
             self.y = coord2
         else:
@@ -20,12 +21,11 @@ class Tile:
         self.state = state
 
     def __repr__(self):
-        return f"A {self.state} {self.state} @ {self.x},{self.y}"
+        return f"A {self.state} @ {self.x},{self.y}"
 
     def update_state(self, state):
         self.state = state
-        pygame.draw.rect(screen, colors[state],
-                         (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
+        pygame.draw.rect(screen, colors[state], (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
         pygame.display.update()
         return self.state
 
@@ -56,8 +56,7 @@ def within_board(coord1, coord2=0):  # checks if coords are in board
         y = coord2
     else:
         x, y = coord1
-    return 0 <= x < grid_width \
-           and 0 <= y < grid_height
+    return 0 <= x < grid_width and 0 <= y < grid_height
 
 
 def walkable(coord1, coord2=0):  # checks if its a wall
@@ -69,7 +68,7 @@ def walkable(coord1, coord2=0):  # checks if its a wall
     return grid[x, y].state != "wall"
 
 
-def get_valid_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals_coords
+def get_valid_neighbor_coords(x, y, corners=True):  # gets all valid neighboring coordinates including diagonals coords
     # Order is N, E, S, W, NE, SE, SW, NW
     neighbor_coords = [
         (x, y - 1),
@@ -97,7 +96,7 @@ def get_valid_neighbor_coords(x, y, corners=True):  # gets all the neighboring c
     return neighbor_coords
 
 
-def get_all_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals_coords
+def get_all_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals coords
     # Order is N, E, S, W, NE, SE, SW, NW
     neighbor_coords = [
         (x, y - 1),
@@ -125,6 +124,7 @@ def get_all_neighbor_coords(x, y, corners=True):  # gets all the neighboring coo
 
 
 def a_star_search():
+    # This sets the heuristic score for every tile
     for x in range(grid_width):
         for y in range(grid_height):
             grid[x, y].h = get_distance(grid[x, y], goal_tile)
@@ -274,8 +274,7 @@ def depth_first_search():
                 grid[x, y].parent = current_tile
 
 
-def recursive_backtrack_fake():
-    closed = [[start_tile.x, start_tile.y]]
+def recursive_backtrack():  # CURRENTLY BROKEN
     for x in range(grid_width):
         for y in range(grid_height):
             grid[x, y].state = "wall"
@@ -283,11 +282,11 @@ def recursive_backtrack_fake():
     start_tile.update_state("start")
     goal_tile.update_state("goal")
 
-    open = [start_tile]
+    open_queue = [start_tile]
     closed = [start_tile]
 
-    while len(open) > 0:
-        current_tile = open.pop()
+    while len(open_queue) > 0:
+        current_tile = open_queue.pop()
         neighbor_coords = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
         neighbor_coords = [coord for coord in neighbor_coords if grid[coord] not in closed]
         if neighbor_coords:
@@ -295,35 +294,8 @@ def recursive_backtrack_fake():
             next_tile = grid[neighbor_coords[random_index]]
             next_tile.update_state("path")
             closed += [grid[coord] for coord in neighbor_coords]
-            open.append(next_tile)
+            open_queue.append(next_tile)
     print("Finished Maze")
-
-
-def recursive_backtrack():
-    print("Generating Maze")
-    for x in range(grid_width):
-        for y in range(grid_height):
-            grid[x, y].state = "wall"
-    screen.fill(colors["wall"])
-    start_tile.update_state("start")
-    goal_tile.update_state("goal")
-
-    stack = [start_tile]
-    closed = [start_tile]
-    recursive_backtrack_helper(stack, closed)
-
-
-def recursive_backtrack_helper(stack, closed):
-    current_tile = stack.pop()
-    neighbor_coords = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
-    neighbor_coords = [coord for coord in neighbor_coords if grid[coord] not in closed]
-    if neighbor_coords:
-        random_index = random.randint(0, len(neighbor_coords) - 1)
-        next_tile = grid[neighbor_coords[random_index]]
-        next_tile.update_state("path")
-        closed += [grid[coord] for coord in neighbor_coords]
-        stack.append(next_tile)
-        recursive_backtrack_helper(stack, closed)
 
 
 def on_mouse_press():
@@ -379,24 +351,21 @@ def reset_board(hard=True):
     global start_tile
     global goal_tile
 
-    screen.fill(colors["path"])
-
     for x in range(grid_width):
         for y in range(grid_height):
             if hard:
+                screen.fill(colors["path"])
                 grid[x, y] = Tile(x, y)
             else:
-                if grid[x, y].state == "wall":
+                if grid[x, y].state == "solution" or grid[x, y].state == "open" or grid[x, y].state == "closed":
                     grid[x, y] = Tile(x, y)
-                    grid[x, y].update_state("wall")
-                else:
-                    grid[x, y] = Tile(x, y)
+                    grid[x, y].update_state("path")
 
-    start_tile = grid[start_tile.coord]
+    start_tile = grid[start_tile.coord] = Tile(start_tile.coord)
     start_tile.update_state("start")
     start_tile.g = 0
 
-    goal_tile = grid[goal_tile.coord]
+    goal_tile = grid[goal_tile.coord] = Tile(goal_tile.coord)
     goal_tile.update_state("goal")
 
 
@@ -443,9 +412,9 @@ current_search = "a*"
 pygame.display.set_caption(f"{current_search} algorithm")
 
 grid = np.empty((grid_width, grid_height), object)
-for x in range(grid_width):
-    for y in range(grid_height):
-        grid[x, y] = Tile(x, y)
+for x_ in range(grid_width):
+    for y_ in range(grid_height):
+        grid[x_, y_] = Tile(x_, y_)
 # Initial setup
 
 
