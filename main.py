@@ -274,31 +274,56 @@ def depth_first_search():
                 grid[x, y].parent = current_tile
 
 
-# def recursive_backtrack():
-#     global start_tile
-#     global goal_tile
-#     closed = [[start_tile.x, start_tile.y]]
-#     for x in range(grid_width):
-#         for y in range(grid_height):
-#             grid[x, y].state = "wall"
-#     screen.fill(colors["wall"])
-#     start_tile.update_state("start")
-#     goal_tile.update_state("goal")
-#
-#     recursive_backtrack_helper(start_tile, closed)
-#
-#
-# def recursive_backtrack_helper(current_tile, closed):
-#     neighbor_coords = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
-#     neighbor_coords = [coord for coord in neighbor_coords if coord not in closed]
-#     if neighbor_coords:
-#         next_tile_coord = neighbor_coords.pop(random.randint(0, len(neighbor_coords) - 1))
-#         next_tile = grid[next_tile_coord]
-#         next_tile.update_state("path")
-#         closed += neighbor_coords
-#         recursive_backtrack_helper(next_tile, closed)
-#     else:
-#         print("Finished Maze")
+def recursive_backtrack_fake():
+    closed = [[start_tile.x, start_tile.y]]
+    for x in range(grid_width):
+        for y in range(grid_height):
+            grid[x, y].state = "wall"
+    screen.fill(colors["wall"])
+    start_tile.update_state("start")
+    goal_tile.update_state("goal")
+
+    open = [start_tile]
+    closed = [start_tile]
+
+    while len(open) > 0:
+        current_tile = open.pop()
+        neighbor_coords = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
+        neighbor_coords = [coord for coord in neighbor_coords if grid[coord] not in closed]
+        if neighbor_coords:
+            random_index = random.randint(0, len(neighbor_coords) - 1)
+            next_tile = grid[neighbor_coords[random_index]]
+            next_tile.update_state("path")
+            closed += [grid[coord] for coord in neighbor_coords]
+            open.append(next_tile)
+    print("Finished Maze")
+
+
+def recursive_backtrack():
+    print("Generating Maze")
+    for x in range(grid_width):
+        for y in range(grid_height):
+            grid[x, y].state = "wall"
+    screen.fill(colors["wall"])
+    start_tile.update_state("start")
+    goal_tile.update_state("goal")
+
+    stack = [start_tile]
+    closed = [start_tile]
+    recursive_backtrack_helper(stack, closed)
+
+
+def recursive_backtrack_helper(stack, closed):
+    current_tile = stack.pop()
+    neighbor_coords = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
+    neighbor_coords = [coord for coord in neighbor_coords if grid[coord] not in closed]
+    if neighbor_coords:
+        random_index = random.randint(0, len(neighbor_coords) - 1)
+        next_tile = grid[neighbor_coords[random_index]]
+        next_tile.update_state("path")
+        closed += [grid[coord] for coord in neighbor_coords]
+        stack.append(next_tile)
+        recursive_backtrack_helper(stack, closed)
 
 
 def on_mouse_press():
@@ -399,9 +424,9 @@ searches = {
     "bfs": breadth_first_search,
     "greedy": greedy_first_search
 }
-# mazes = {
-#     "recursive": recursive_backtrack
-# }
+mazes = {
+    "recursive": recursive_backtrack
+}
 
 display_width = 800
 display_height = 800
@@ -448,8 +473,8 @@ while True:
             if event.key == pygame.K_F5:
                 print("Refreshing")
                 reset_board(True)
-            # if event.key == pygame.K_m:
-            #     mazes["recursive"]()
+            if event.key == pygame.K_m:
+                mazes["recursive"]()
             if event.key == pygame.K_a:
                 change_algorithm("a*")
             if event.key == pygame.K_d:
