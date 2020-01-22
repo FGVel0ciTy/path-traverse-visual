@@ -351,7 +351,7 @@ def on_mouse_press():
         if grid[x, y].state == "wall":
             grid[x, y].update_state("path")
 
-    step_time = default_step_time
+    step_time = 0 if fast_step else default_step_time
 
 
 def get_solution(search_type):
@@ -392,7 +392,7 @@ def reset_board(hard=True):
     goal_tile = grid[goal_tile.coord] = Tile(goal_tile.coord)
     goal_tile.update_state("goal")
 
-    step_time = default_step_time
+    step_time = 0 if fast_step else default_step_time
 
 
 def change_algorithm(algorithm):
@@ -435,7 +435,8 @@ pygame.init()
 screen = pygame.display.set_mode((display_width, display_height))
 screen.fill(colors["path"])
 
-default_step_time = 0.001
+default_step_time = 0.0000001
+fast_step = False
 step_time = default_step_time
 current_search = "a*"
 pygame.display.set_caption(f"{current_search} algorithm")
@@ -483,6 +484,10 @@ while True:
                 change_algorithm("dfs")
             if event.key == pygame.K_g:
                 change_algorithm("greedy")
+            if event.key == pygame.K_s:
+                fast_step = not fast_step
+                step_time = 0 if fast_step else default_step_time
+                print(f"Fast step is {fast_step}")
         if True in pygame.mouse.get_pressed():
             on_mouse_press()
 
