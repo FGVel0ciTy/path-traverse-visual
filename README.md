@@ -37,7 +37,7 @@ Start Algorithm - Return or Enter
 * When there is no path, the program auto closes
 * Sometimes PyGame doesn't update so the program will "freeze." Just let it run and the algorithm will finish up and update it at the end
 
-## Future Goal
+## Future Goals
 * Add Play/Pausing (Probably not going to happen atm b/c requires complete rewrite)
 * More maze algorithms
 * Fix the bugs
