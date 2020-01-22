@@ -6,6 +6,7 @@ import sys
 from tile_queues import *
 import os
 import random
+import time
 
 
 class Tile:
@@ -26,7 +27,8 @@ class Tile:
     def update_state(self, state):
         self.state = state
         pygame.draw.rect(screen, colors[state], (self.x * tile_width, self.y * tile_height, tile_width, tile_height))
-        pygame.display.update()
+        pygame.display.update((self.x * tile_width, self.y * tile_height, tile_width, tile_height))
+        time.sleep(step_time)
         return self.state
 
 
@@ -68,56 +70,35 @@ def walkable(coord1, coord2=0):  # checks if its a wall
     return grid[x, y].state != "wall"
 
 
-def get_valid_neighbor_coords(x, y, corners=True):  # gets all valid neighboring coordinates including diagonals coords
+def get_neighbor_coords(x, y, corners=True, distance=1, around=False, outside=False):
+    # gets all valid neighboring coordinates including diagonals coords
     # Order is N, E, S, W, NE, SE, SW, NW
     neighbor_coords = [
-        (x, y - 1),
-        (x + 1, y),
-        (x, y + 1),
-        (x - 1, y)
+        (x, y - distance),
+        (x + distance, y),
+        (x, y + distance),
+        (x - distance, y)
     ]
 
-    neighbor_coords = [neighbor for neighbor in neighbor_coords if within_board(neighbor) and walkable(neighbor)]
+    neighbor_coords = [neighbor for neighbor in neighbor_coords if
+                       (outside or within_board(neighbor))
+                       and (around or walkable(neighbor))]
 
     if not corners:
         return neighbor_coords
 
     diagonals_coords = [
-        (x + 1, y - 1),
-        (x + 1, y + 1),
-        (x - 1, y + 1),
-        (x - 1, y - 1)
+        (x + distance, y - distance),
+        (x + distance, y + distance),
+        (x - distance, y + distance),
+        (x - distance, y - distance)
     ]
 
-    diagonals_coords = [diagonal for diagonal in diagonals_coords if within_board(diagonal) and walkable(diagonal)
-                        and ((diagonal[0], y) in neighbor_coords or (x, diagonal[1]) in neighbor_coords)]
-
-    neighbor_coords += diagonals_coords
-    return neighbor_coords
-
-
-def get_all_neighbor_coords(x, y, corners=True):  # gets all the neighboring coordinates including diagonals coords
-    # Order is N, E, S, W, NE, SE, SW, NW
-    neighbor_coords = [
-        (x, y - 1),
-        (x + 1, y),
-        (x, y + 1),
-        (x - 1, y)
-    ]
-
-    neighbor_coords = [neighbor for neighbor in neighbor_coords if within_board(neighbor)]
-
-    if not corners:
-        return neighbor_coords
-
-    diagonals_coords = [
-        (x + 1, y - 1),
-        (x + 1, y + 1),
-        (x - 1, y + 1),
-        (x - 1, y - 1)
-    ]
-
-    diagonals_coords = [diagonal for diagonal in diagonals_coords if within_board(diagonal)]
+    diagonals_coords = [diagonal for diagonal in diagonals_coords if
+                        (outside or within_board(diagonal))
+                        and (around or walkable(diagonal))
+                        and (around or outside
+                             or ((diagonal[0], y) in neighbor_coords or (x, diagonal[1]) in neighbor_coords))]
 
     neighbor_coords += diagonals_coords
     return neighbor_coords
@@ -139,7 +120,7 @@ def a_star_search():
         if current_tile.state != "start":
             current_tile.update_state("closed")
 
-        neighbor_coords = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y)
         for x, y in neighbor_coords:
             if grid[x, y].state == "closed" or grid[x, y].state == "start":
                 continue
@@ -163,8 +144,6 @@ def a_star_search():
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
 
-    return None
-
 
 def dijkstra_search():
     start_tile.d = get_dijkstra_score(start_tile)
@@ -177,7 +156,7 @@ def dijkstra_search():
         if current_tile.state != "start":
             current_tile.update_state("closed")
 
-        neighbor_coords = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y)
         for x, y in neighbor_coords:
             if grid[x, y].state == "closed" or grid[x, y].state == "start":
                 continue
@@ -201,8 +180,6 @@ def dijkstra_search():
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
 
-    return None
-
 
 def greedy_first_search():
     for x in range(grid_width):
@@ -218,7 +195,7 @@ def greedy_first_search():
         if current_tile.state != "start":
             current_tile.update_state("closed")
 
-        neighbor_coords = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y)
         for x, y in neighbor_coords:
             if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
                 if grid[x, y].state == "goal":
@@ -228,8 +205,6 @@ def greedy_first_search():
                 open_queue.insert(grid[x, y])
                 grid[x, y].update_state("open")
                 grid[x, y].parent = current_tile
-
-    return None
 
 
 def breadth_first_search():
@@ -241,7 +216,7 @@ def breadth_first_search():
         if current_tile.state != "start":
             current_tile.update_state("closed")
 
-        neighbor_coords = get_valid_neighbor_coords(current_tile.x, current_tile.y)
+        neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y)
         for x, y in neighbor_coords:
             if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
                 if grid[x, y].state == "goal":
@@ -262,7 +237,7 @@ def depth_first_search():
         if current_tile.state != "start":
             current_tile.update_state("closed")
 
-        neighbor_coords = reversed(get_valid_neighbor_coords(current_tile.x, current_tile.y, False))
+        neighbor_coords = reversed(get_neighbor_coords(current_tile.x, current_tile.y, False))
         for x, y in neighbor_coords:
             if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
                 if grid[x, y].state == "goal":
@@ -274,33 +249,77 @@ def depth_first_search():
                 grid[x, y].parent = current_tile
 
 
-def recursive_backtrack():  # CURRENTLY BROKEN
+def recursive_backtrack_maze():
+    global start_tile
     for x in range(grid_width):
         for y in range(grid_height):
             grid[x, y].state = "wall"
     screen.fill(colors["wall"])
+    pygame.display.flip()
+
+    start_x = random.randint(0, grid_width - 1)
+    start_y = random.randint(0, grid_height - 1)
+
+    while start_x % 2 == 0 or start_y % 2 == 0:
+        start_x = random.randint(0, grid_width - 1)
+        start_y = random.randint(0, grid_height - 1)
+
+    open_queue = []
+    x, y = start_x, start_y
+    print(f"Maze starting at {x}, {y}")
+
+    while x and y:
+        while x and y:
+            open_queue.append(grid[x, y])
+            x, y = next_path(x, y)
+        x, y = backtrack(open_queue)
+
+    start_tile.update_state("normal")
+    grid[start_tile.coord] = Tile(start_tile.coord)
+    start_tile = grid[start_x, start_y] = Tile(start_x, start_y)
     start_tile.update_state("start")
+    start_tile.g = 0
+
     goal_tile.update_state("goal")
-
-    open_queue = [start_tile]
-    closed = [start_tile]
-
-    while len(open_queue) > 0:
-        current_tile = open_queue.pop()
-        neighbor_coords = get_all_neighbor_coords(current_tile.x, current_tile.y, False)
-        neighbor_coords = [coord for coord in neighbor_coords if grid[coord] not in closed]
-        if neighbor_coords:
-            random_index = random.randint(0, len(neighbor_coords) - 1)
-            next_tile = grid[neighbor_coords[random_index]]
-            next_tile.update_state("path")
-            closed += [grid[coord] for coord in neighbor_coords]
-            open_queue.append(next_tile)
     print("Finished Maze")
+
+
+def next_path(x, y):
+
+    next_one_tiles = get_neighbor_coords(x, y, corners=False, distance=1, around=True, outside=True)
+    next_two_tiles = get_neighbor_coords(x, y, corners=False, distance=2, around=True, outside=True)
+    if next_two_tiles:
+        random_indexes = list(range(4))
+        random.shuffle(random_indexes)
+
+        for index in random_indexes:
+            if within_board(next_two_tiles[index]) and grid[next_two_tiles[index]].state != "path":
+                grid[next_two_tiles[index]].update_state("path")
+                grid[next_one_tiles[index]].update_state("path")
+                return next_two_tiles[index]
+    return None, None
+
+
+def backtrack(open_queue):
+    while open_queue:
+        x, y = open_queue.pop().coord
+        next_two_tiles = get_neighbor_coords(x, y, corners=False, distance=2, around=True)
+        next_two_tiles = [grid[coord] for coord in next_two_tiles if grid[coord].state != "path"
+                          and grid[coord].state != "start"]
+
+        if next_two_tiles:
+            return x, y
+
+    return None, None
 
 
 def on_mouse_press():
     global start_tile
     global goal_tile
+    global step_time
+
+    step_time = 0
+
     mx, my = pygame.mouse.get_pos()
     x = mx // (display_width // grid_width)
     y = my // (display_height // grid_height)
@@ -332,6 +351,8 @@ def on_mouse_press():
         if grid[x, y].state == "wall":
             grid[x, y].update_state("path")
 
+    step_time = default_step_time
+
 
 def get_solution(search_type):
     solution: Tile = searches[search_type]()
@@ -350,11 +371,14 @@ def reset_board(hard=True):
     global grid
     global start_tile
     global goal_tile
+    global step_time
+    step_time = 0
 
+    if hard:
+        screen.fill(colors["path"])
     for x in range(grid_width):
         for y in range(grid_height):
             if hard:
-                screen.fill(colors["path"])
                 grid[x, y] = Tile(x, y)
             else:
                 if grid[x, y].state == "solution" or grid[x, y].state == "open" or grid[x, y].state == "closed":
@@ -367,6 +391,8 @@ def reset_board(hard=True):
 
     goal_tile = grid[goal_tile.coord] = Tile(goal_tile.coord)
     goal_tile.update_state("goal")
+
+    step_time = default_step_time
 
 
 def change_algorithm(algorithm):
@@ -394,7 +420,7 @@ searches = {
     "greedy": greedy_first_search
 }
 mazes = {
-    "recursive": recursive_backtrack
+    "recursive": recursive_backtrack_maze
 }
 
 display_width = 800
@@ -408,6 +434,9 @@ os.environ['SDL_VIDEO_CENTERED'] = "0"
 pygame.init()
 screen = pygame.display.set_mode((display_width, display_height))
 screen.fill(colors["path"])
+
+default_step_time = 0.001
+step_time = default_step_time
 current_search = "a*"
 pygame.display.set_caption(f"{current_search} algorithm")
 
@@ -415,7 +444,7 @@ grid = np.empty((grid_width, grid_height), object)
 for x_ in range(grid_width):
     for y_ in range(grid_height):
         grid[x_, y_] = Tile(x_, y_)
-# Initial setup
+# Initial setup ^
 
 
 goal_tile = grid[99, 99]
@@ -440,9 +469,9 @@ while True:
                 reset_board(False)
                 get_solution(current_search)
             if event.key == pygame.K_F5:
-                print("Refreshing")
                 reset_board(True)
             if event.key == pygame.K_m:
+                reset_board(True)
                 mazes["recursive"]()
             if event.key == pygame.K_a:
                 change_algorithm("a*")
