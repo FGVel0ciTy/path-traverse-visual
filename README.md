@@ -27,6 +27,8 @@ Changing Algorithms (Just press specified key):
   
 Reset Grid - F5
 
+Generate Maze - m
+
 Start Algorithm - Return or Enter
 
 ## Problems
