@@ -1,6 +1,6 @@
 
 ## path-traverse-visual
-This project is basically a bunch of path searching algorithms visualized. So far you can make paths (place/destroy walls), move the goal/start, and do the searches. The algorithms that I have implemented is A*, Dijkstra, Breadth First, Depth First, and Greedy First Searches.
+This project is basically a bunch of path searching algorithms visualized. So far you can make paths (place/destroy walls), move the goal/start, generate mazes, and do the searches. The searching algorithms that I have implemented is A*, Dijkstra, Breadth First, Depth First, and Greedy First Searches. The maze algorithm so far is recursive/iterative backtracking
 
 ## Setting Up
 You must have a python environment with [PyGame](https://www.pygame.org/) and the [NumPy](https://numpy.org/) modules.
@@ -26,6 +26,8 @@ Changing Algorithms (Just press specified key):
   - Depth First Search: =
   
 Reset Grid - F5
+
+Generate Maze - m
 
 Start Algorithm - Return or Enter
 
