@@ -29,6 +29,8 @@ Reset Grid - F5
 
 Generate Maze - m
 
+Fast Step (No sleep timer between steps) - s
+
 Start Algorithm - Return or Enter
 
 ## Problems
