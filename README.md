@@ -18,12 +18,7 @@ Moving start - Ctrl+Left Mouse Click
 
 Moving goal - Ctrl+Left Mouse Click
 
-Changing Algorithms (Just press specified key):
-  - A*: a
-  - Dijkstra: d
-  - Breadth First Search: b
-  - Greedy First Search: g
-  - Depth First Search: =
+Changing Algorithms - Right/Left arrow Keys for different search algorithms. Up/Down Keys arrow keys for different maze algorithms
   
 Reset Grid - F5
 
