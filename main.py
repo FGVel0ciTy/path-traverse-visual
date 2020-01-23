@@ -216,7 +216,7 @@ def breadth_first_search():
         if current_tile.state != "start":
             current_tile.update_state("closed")
 
-        neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y)
+        neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y, False)
         for x, y in neighbor_coords:
             if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
                 if grid[x, y].state == "goal":
