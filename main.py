@@ -353,7 +353,7 @@ def on_mouse_press():
 
 
 def get_solution(search_type):
-    solution: Tile = searches[search_type]()
+    solution = searches[search_type]()
     if solution:
         while True:
             try:
@@ -393,10 +393,40 @@ def reset_board(hard=True):
     step_time = 0 if fast_step else default_step_time
 
 
-def change_algorithm(algorithm):
-    global current_search
-    current_search = algorithm
-    pygame.display.set_caption(f"{current_search} algorithm")
+def change_search(index):
+    global current_search_index
+    if index == "next":
+        if current_search_index >= len(searches) - 1:
+            current_search_index = 0
+        else:
+            current_search_index += 1
+    elif index == "back":
+        if current_search_index <= 0:
+            current_search_index = len(searches) - 1
+        else:
+            current_search_index += -1
+    else:
+        current_search_index = index
+    pygame.display.set_caption(f"{search_names[current_search_index]} algorithm | "
+                               f"{maze_names[current_maze_index]} maze generation")
+
+
+def change_maze(index):
+    global current_maze_index
+    if index == "next":
+        if current_maze_index >= len(mazes) - 1:
+            current_maze_index = 0
+        else:
+            current_maze_index += 1
+    elif index == "back":
+        if current_maze_index <= 0:
+            current_maze_index = len(mazes) - 1
+        else:
+            current_maze_index += -1
+    else:
+        current_maze_index = index
+    pygame.display.set_caption(f"{search_names[current_search_index]} algorithm | "
+                               f"{maze_names[current_maze_index]} maze generation")
 
 
 # Initial setup
@@ -410,16 +440,26 @@ colors = {
     "start": (255, 0, 0),
     "solution": (0, 255, 0)
 }
-searches = {
-    "dijkstra's": dijkstra_search,
-    "a*": a_star_search,
-    "dfs": depth_first_search,
-    "bfs": breadth_first_search,
-    "greedy": greedy_first_search
-}
-mazes = {
-    "iterative": iterative_backtrack_maze
-}
+search_names = [
+    "A*",
+    "Dijkstra",
+    "Greedy",
+    "DFS",
+    "BFS"
+]
+searches = [
+    a_star_search,
+    dijkstra_search,
+    greedy_first_search,
+    depth_first_search,
+    breadth_first_search
+]
+maze_names = [
+    "Iterative"
+]
+mazes = [
+    iterative_backtrack_maze
+]
 
 display_width = 800
 display_height = 800
@@ -433,12 +473,13 @@ pygame.init()
 screen = pygame.display.set_mode((display_width, display_height))
 screen.fill(colors["path"])
 
-default_step_time = 0.0000001
+default_step_time = 0.00001
 fast_step = False
 step_time = default_step_time
-current_search = "a*"
-current_maze_gen = "iterative"
-pygame.display.set_caption(f"{current_search} algorithm | {current_maze_gen} maze generation")
+current_search_index = 0
+current_maze_index = 0
+pygame.display.set_caption(f"{search_names[current_search_index]} algorithm | "
+                           f"{maze_names[current_maze_index]} maze generation")
 
 grid = np.empty((grid_width, grid_height), object)
 for x_ in range(grid_width):
@@ -467,22 +508,20 @@ while True:
             if event.key == pygame.K_KP_ENTER or event.key == pygame.K_RETURN:
                 print("Getting Solution")
                 reset_board(False)
-                get_solution(current_search)
+                get_solution(current_search_index)
             if event.key == pygame.K_F5:
                 reset_board(True)
             if event.key == pygame.K_m:
                 reset_board(True)
-                mazes[current_maze_gen]()
-            if event.key == pygame.K_a:
-                change_algorithm("a*")
-            if event.key == pygame.K_d:
-                change_algorithm("dijkstra's")
-            if event.key == pygame.K_b:
-                change_algorithm("bfs")
-            if event.key == pygame.K_EQUALS:
-                change_algorithm("dfs")
-            if event.key == pygame.K_g:
-                change_algorithm("greedy")
+                mazes[current_maze_index]()
+            if event.key == pygame.K_RIGHT:
+                change_search("next")
+            if event.key == pygame.K_LEFT:
+                change_search("back")
+            if event.key == pygame.K_UP:
+                change_maze("next")
+            if event.key == pygame.K_DOWN:
+                change_maze("back")
             if event.key == pygame.K_s:
                 fast_step = not fast_step
                 step_time = 0 if fast_step else default_step_time
