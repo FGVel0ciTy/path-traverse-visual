@@ -18,7 +18,7 @@ Moving start - Ctrl+Left Mouse Click
 
 Moving goal - Ctrl+Left Mouse Click
 
-Changing Algorithms - Right/Left arrow Keys for different search algorithms. Up/Down Keys arrow keys for different maze algorithms
+Changing Algorithms - Right/Left arrow Keys for different search algorithms. Up/Down arrow keys for different maze algorithms
   
 Reset Grid - F5
 
