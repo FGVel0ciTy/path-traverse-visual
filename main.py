@@ -249,7 +249,7 @@ def depth_first_search():
                 grid[x, y].parent = current_tile
 
 
-def recursive_backtrack_maze():
+def iterative_backtrack_maze():
     global start_tile
     for x in range(grid_width):
         for y in range(grid_height):
@@ -285,29 +285,27 @@ def recursive_backtrack_maze():
 
 
 def next_path(x, y):
-
-    next_one_tiles = get_neighbor_coords(x, y, corners=False, distance=1, around=True, outside=True)
-    next_two_tiles = get_neighbor_coords(x, y, corners=False, distance=2, around=True, outside=True)
-    if next_two_tiles:
+    one_away_tiles = get_neighbor_coords(x, y, corners=False, distance=1, around=True, outside=True)
+    two_away_tiles = get_neighbor_coords(x, y, corners=False, distance=2, around=True, outside=True)
+    if two_away_tiles:
         random_indexes = list(range(4))
         random.shuffle(random_indexes)
-
         for index in random_indexes:
-            if within_board(next_two_tiles[index]) and grid[next_two_tiles[index]].state != "path":
-                grid[next_two_tiles[index]].update_state("path")
-                grid[next_one_tiles[index]].update_state("path")
-                return next_two_tiles[index]
+            if within_board(two_away_tiles[index]) and grid[two_away_tiles[index]].state != "path":
+                grid[two_away_tiles[index]].update_state("path")
+                grid[one_away_tiles[index]].update_state("path")
+                return two_away_tiles[index]
     return None, None
 
 
 def backtrack(open_queue):
     while open_queue:
         x, y = open_queue.pop().coord
-        next_two_tiles = get_neighbor_coords(x, y, corners=False, distance=2, around=True)
-        next_two_tiles = [grid[coord] for coord in next_two_tiles if grid[coord].state != "path"
+        two_away_tiles = get_neighbor_coords(x, y, corners=False, distance=2, around=True)
+        two_away_tiles = [grid[coord] for coord in two_away_tiles if grid[coord].state != "path"
                           and grid[coord].state != "start"]
 
-        if next_two_tiles:
+        if two_away_tiles:
             return x, y
 
     return None, None
@@ -420,7 +418,7 @@ searches = {
     "greedy": greedy_first_search
 }
 mazes = {
-    "recursive": recursive_backtrack_maze
+    "iterative": iterative_backtrack_maze
 }
 
 display_width = 800
@@ -439,7 +437,8 @@ default_step_time = 0.0000001
 fast_step = False
 step_time = default_step_time
 current_search = "a*"
-pygame.display.set_caption(f"{current_search} algorithm")
+current_maze_gen = "iterative"
+pygame.display.set_caption(f"{current_search} algorithm | {current_maze_gen} maze generation")
 
 grid = np.empty((grid_width, grid_height), object)
 for x_ in range(grid_width):
@@ -473,7 +472,7 @@ while True:
                 reset_board(True)
             if event.key == pygame.K_m:
                 reset_board(True)
-                mazes["recursive"]()
+                mazes[current_maze_gen]()
             if event.key == pygame.K_a:
                 change_algorithm("a*")
             if event.key == pygame.K_d:
