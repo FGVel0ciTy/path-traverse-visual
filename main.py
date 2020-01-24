@@ -264,15 +264,15 @@ def iterative_backtrack_maze():
         start_x = random.randint(0, grid_width - 1)
         start_y = random.randint(0, grid_height - 1)
 
-    open_queue = []
+    stack = []
     x, y = start_x, start_y
     print(f"Maze starting at {x}, {y}")
 
     while x and y:
         while x and y:
-            open_queue.append(grid[x, y])
+            stack.append(grid[x, y])
             x, y = next_path(x, y)
-        x, y = backtrack(open_queue)
+        x, y = backtrack(stack)
 
     start_tile.update_state("normal")
     grid[start_tile.coord] = Tile(start_tile.coord)
@@ -298,9 +298,9 @@ def next_path(x, y):
     return None, None
 
 
-def backtrack(open_queue):
-    while open_queue:
-        x, y = open_queue.pop().coord
+def backtrack(stack):
+    while stack:
+        x, y = stack.pop().coord
         two_away_tiles = get_neighbor_coords(x, y, corners=False, distance=2, around=True)
         two_away_tiles = [grid[coord] for coord in two_away_tiles if grid[coord].state != "path"
                           and grid[coord].state != "start"]
@@ -308,6 +308,57 @@ def backtrack(open_queue):
         if two_away_tiles:
             return x, y
 
+    return None, None
+
+
+def hunt_kill():
+    global start_tile
+    for x in range(grid_width):
+        for y in range(grid_height):
+            grid[x, y].state = "wall"
+    screen.fill(colors["wall"])
+    pygame.display.flip()
+
+    start_x = random.randint(0, grid_width - 1)
+    start_y = random.randint(0, grid_height - 1)
+
+    while start_x % 2 == 0 or start_y % 2 == 0:
+        start_x = random.randint(0, grid_width - 1)
+        start_y = random.randint(0, grid_height - 1)
+
+    hunting_rows = list(range(1, grid_height, 2))
+    x, y = start_x, start_y
+    print(f"Maze starting at {x}, {y}")
+
+    while hunting_rows:
+        while x and y:
+            x, y = next_path(x, y)
+        x, y = hunt(hunting_rows)
+
+    start_tile.update_state("normal")
+    grid[start_tile.coord] = Tile(start_tile.coord)
+    start_tile = grid[start_x, start_y] = Tile(start_x, start_y)
+    start_tile.update_state("start")
+    start_tile.g = 0
+
+    goal_tile.update_state("goal")
+    print("Finished Maze")
+
+
+def hunt(hunting_rows):
+    while hunting_rows:
+        for y in hunting_rows:
+            row_filled = True
+            for x in range(1, grid_width, 2):
+                if grid[x, y].state != "path" and grid[x, y].state != "start":
+                    row_filled = False
+                    two_away_tiles = get_neighbor_coords(x, y, corners=False, distance=2)
+                    if two_away_tiles:
+                        random.shuffle(two_away_tiles)
+                        return two_away_tiles[0]
+            if row_filled:
+                hunting_rows.remove(y)
+                break
     return None, None
 
 
@@ -455,10 +506,12 @@ searches = [
     breadth_first_search
 ]
 maze_names = [
-    "Iterative"
+    "Iterative",
+    "Hunt and Kill"
 ]
 mazes = [
-    iterative_backtrack_maze
+    iterative_backtrack_maze,
+    hunt_kill
 ]
 
 display_width = 800
