@@ -54,5 +54,6 @@ Start Algorithm - Return or Enter
 * [Medium](https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2)
 * [Stanford CS](http://theory.stanford.edu/~amitp/GameProgramming/AStarComparison.html)
 * [Julian Smolka](https://github.com/jsmolka/maze) - Huge help with maze generation. Our systems for a grid a pretty different but this resource/repository helped give me a lead to develop my maze algorithms
+* [Jamis Buck](https://weblog.jamisbuck.org/under-the-hood/)
 * Wikipedia
 * A bunch of other sites
