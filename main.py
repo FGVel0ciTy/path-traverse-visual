@@ -71,6 +71,9 @@ def walkable(coord1, coord2=0):  # checks if its a wall
 
 
 def get_neighbor_coords(x, y, corners=True, distance=1, around=False, outside=False):
+    # if around variable is true, walls can now be selected
+    # if outside variable is true, the coordinates can now be out of bounds
+
     # gets all valid neighboring coordinates including diagonals coords
     # Order is N, E, S, W, NE, SE, SW, NW
     neighbor_coords = [
@@ -104,6 +107,12 @@ def get_neighbor_coords(x, y, corners=True, distance=1, around=False, outside=Fa
     return neighbor_coords
 
 
+# h: Heuristic score (Euclidian distance)
+# g: Distance from the start tile
+# f: F score for A* search (h+g)
+# d: Dijkstra score (Difference from g is that it takes tile weight into account)
+
+
 def a_star_search():
     # This sets the heuristic score for every tile
     for x in range(grid_width):
@@ -127,6 +136,7 @@ def a_star_search():
 
             new_g = current_tile.g + get_distance(grid[x, y], current_tile)
 
+            # this specific piece of code checks if the current tile is a closer tile than the OG parent
             try:
                 if new_g < grid[x, y].g:
                     grid[x, y].g = new_g
