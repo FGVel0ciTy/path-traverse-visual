@@ -16,7 +16,7 @@ Destroying walls - Right Mouse Click
 
 Moving start - Ctrl+Left Mouse Click
 
-Moving goal - Ctrl+Left Mouse Click
+Moving goal - Alt+Left Mouse Click
 
 Changing Algorithms - Right/Left arrow Keys for different search algorithms. Up/Down arrow keys for different maze algorithms
 (You can look at the window name to see what algorithms you are using.)
