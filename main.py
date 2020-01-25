@@ -526,7 +526,7 @@ pygame.init()
 screen = pygame.display.set_mode((display_width, display_height))
 screen.fill(colors["path"])
 
-default_step_time = 0.00001
+default_step_time = 0.0005
 fast_step = False
 step_time = default_step_time
 current_search_index = 0
