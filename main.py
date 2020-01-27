@@ -33,11 +33,11 @@ class Tile:
 
 
 def get_distance(tile1, tile2):  # Euclidean distance between two points
-    return math.sqrt(math.pow(tile1.x - tile2.x, 2) + math.pow(tile1.y - tile2.y, 2))
+    return ((tile1.x - tile2.x) ** 2 + (tile1.y - tile2.y) ** 2) ** .5
 
 
 def get_distance_manhattan(tile1, tile2):  # Manhattan distance between two points
-    return math.pow(tile1.x - tile2.x, 2) + math.pow(tile1.y - tile2.y, 2)
+    return (tile1.x - tile2.x) ** 2 + (tile1.y - tile2.y) ** 2
 
 
 def get_traveled(tile):  # distance traveled from origin
