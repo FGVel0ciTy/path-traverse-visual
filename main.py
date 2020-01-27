@@ -336,14 +336,14 @@ def hunt_kill():
         start_x = random.randint(0, grid_width - 1)
         start_y = random.randint(0, grid_height - 1)
 
-    hunting_rows = list(range(1, grid_height, 2))
+    to_hunt = list(range(1, grid_height, 2))
     x, y = start_x, start_y
     print(f"Maze starting at {x}, {y}")
 
-    while hunting_rows:
+    while to_hunt:
         while x and y:
             x, y = next_path(x, y)
-        x, y = hunt(hunting_rows)
+        x, y = hunt(to_hunt)
 
     start_tile.update_state("normal")
     grid[start_tile.coord] = Tile(start_tile.coord)
@@ -355,19 +355,18 @@ def hunt_kill():
     print("Finished Maze")
 
 
-def hunt(hunting_rows):
-    while hunting_rows:
-        for y in hunting_rows:
+def hunt(to_hunt):
+    while to_hunt:
+        for y in to_hunt:
             row_filled = True
             for x in range(1, grid_width, 2):
                 if grid[x, y].state != "path" and grid[x, y].state != "start":
                     row_filled = False
                     two_away_tiles = get_neighbor_coords(x, y, corners=False, distance=2)
                     if two_away_tiles:
-                        random.shuffle(two_away_tiles)
-                        return two_away_tiles[0]
+                        return random.choice(two_away_tiles)
             if row_filled:
-                hunting_rows.remove(y)
+                to_hunt.remove(y)
                 break
     return None, None
 
