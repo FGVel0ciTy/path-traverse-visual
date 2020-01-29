@@ -131,7 +131,7 @@ def a_star_search():
 
         neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y)
         for x, y in neighbor_coords:
-            if grid[x, y].state == "closed" or grid[x, y].state == "start":
+            if grid[x, y].state in ["closed", "start"]:
                 continue
 
             new_g = current_tile.g + get_distance(grid[x, y], current_tile)
@@ -168,7 +168,7 @@ def dijkstra_search():
 
         neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y)
         for x, y in neighbor_coords:
-            if grid[x, y].state == "closed" or grid[x, y].state == "start":
+            if grid[x, y].state in ["closed", "start"]:
                 continue
 
             new_g = current_tile.g + get_distance(grid[x, y], current_tile)
@@ -207,7 +207,7 @@ def greedy_first_search():
 
         neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y)
         for x, y in neighbor_coords:
-            if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
+            if grid[x, y] not in open_queue and grid[x, y].state not in ["closed", "start"]:
                 if grid[x, y].state == "goal":
                     print(grid[x, y], "Goal reached")
                     grid[x, y].parent = current_tile
@@ -228,7 +228,7 @@ def breadth_first_search():
 
         neighbor_coords = get_neighbor_coords(current_tile.x, current_tile.y, False)
         for x, y in neighbor_coords:
-            if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
+            if grid[x, y] not in open_queue and grid[x, y].state not in ["closed", "start"]:
                 if grid[x, y].state == "goal":
                     grid[x, y].parent = current_tile
                     print(grid[x, y], "Goal reached")
@@ -249,7 +249,7 @@ def depth_first_search():
 
         neighbor_coords = reversed(get_neighbor_coords(current_tile.x, current_tile.y, False))
         for x, y in neighbor_coords:
-            if grid[x, y] not in open_queue and grid[x, y].state != "closed" and grid[x, y].state != "start":
+            if grid[x, y] not in open_queue and grid[x, y].state not in ["closed", "start"]:
                 if grid[x, y].state == "goal":
                     grid[x, y].parent = current_tile
                     print(grid[x, y], "Goal reached")
@@ -312,8 +312,7 @@ def backtrack(stack):
     while stack:
         x, y = stack.pop().coord
         two_away_tiles = get_neighbor_coords(x, y, corners=False, distance=2, around=True)
-        two_away_tiles = [grid[coord] for coord in two_away_tiles if grid[coord].state != "path"
-                          and grid[coord].state != "start"]
+        two_away_tiles = [grid[coord] for coord in two_away_tiles if grid[coord].state not in ["path", "start"]]
 
         if two_away_tiles:
             return x, y
@@ -360,7 +359,7 @@ def hunt(to_hunt):
         for y in to_hunt:
             row_filled = True
             for x in range(1, grid_width, 2):
-                if grid[x, y].state != "path" and grid[x, y].state != "start":
+                if grid[x, y].state not in ["path", "start"]:
                     row_filled = False
                     two_away_tiles = get_neighbor_coords(x, y, corners=False, distance=2)
                     if two_away_tiles:
@@ -402,7 +401,7 @@ def on_mouse_press():
                 goal_tile = grid[x, y]
                 goal_tile.update_state("goal")
         else:
-            if grid[x, y] != goal_tile and grid[x, y] != start_tile:
+            if grid[x, y] not in [goal_tile, start_tile]:
                 grid[x, y].update_state("normal")
                 grid[x, y].update_state("wall")
     elif lb:
@@ -439,7 +438,7 @@ def reset_board(hard=True):
             if hard:
                 grid[x, y] = Tile(x, y)
             else:
-                if grid[x, y].state == "solution" or grid[x, y].state == "open" or grid[x, y].state == "closed":
+                if grid[x, y].state in ["solution", "open", "closed"]:
                     grid[x, y] = Tile(x, y)
                     grid[x, y].update_state("path")
 
