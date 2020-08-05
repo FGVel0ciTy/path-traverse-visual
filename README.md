@@ -46,7 +46,7 @@ Start Algorithm - Return or Enter
 
 ## Authors
 
-* **Vel0ciTy** - *Main Author* - [Website (WIP)](https://lecongkhoiviet.netlify.com/) 😁
+* **Vel0ciTy** - *Main Author*
 
 ## Acknowledgments
 
